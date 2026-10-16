@@ -1,0 +1,14 @@
+# Publication allowlist. Deliberately extend this list when adding public files.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/LICENSE
+!/docs/
+/docs/*
+!/docs/build-checklist.ai.md
+!/docs/software.ai.md
+!/docs/backup.ai.md
+!/examples/
+/examples/*
+!/examples/inventory.csv
