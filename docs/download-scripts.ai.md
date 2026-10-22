@@ -14,12 +14,12 @@ The scripts have been exercised on macOS with small items from every lane: a Kiw
 
 ## What they promise
 
-- **Nothing is deleted.** A file that fails its check is renamed with a `.bad-<time>` suffix; a broken earlier clone is renamed `.partial-<time>`. Inspect and remove those yourself.
+- **Nothing is deleted.** A file that fails its check is renamed with a `.bad-<time>` suffix (for Ollama models, the bad layer file; for Hugging Face, the bad file and its download record), and an incomplete clone is renamed `.partial-<time>`, so the next pass fetches a fresh copy. Inspect and remove the renamed copies yourself.
 - **Everything resumes.** Stop a lane at any time (Ctrl-C, closing the terminal, a restart). Run it again and it skips finished items and continues partial ones.
-- **Polite downloads.** One file at a time per lane, at most `ARK_CONNECTIONS` connections per file (spread across mirrors when a metalink is available) and `ARK_PER_SERVER` to any single server. `ARK_MAX_SPEED` caps the rate.
-- **Free space is protected.** Before each item, a lane checks that the download leaves at least `ARK_MIN_FREE_GB` free, and skips the item if not.
-- **An unplugged drive is not an empty folder.** On macOS the lanes check that the volume holding `ARK_ROOT` is mounted; if it disappears they wait and check again.
-- **No accounts.** No login is used or sent. Gated Hugging Face repositories are skipped.
+- **Polite downloads.** One item at a time per lane. In the files lane, at most `ARK_CONNECTIONS` connections per file (spread across mirrors when a metalink is available) and `ARK_PER_SERVER` to any single server; `ARK_MAX_SPEED` caps its rate. The Hugging Face tool uses `ARK_PER_SERVER` workers with up to `ARK_CONNECTIONS` range requests per file. Ollama and git manage their own connections and are not rate-capped.
+- **Free space is protected.** Before each item, a lane checks that the download leaves at least `ARK_MIN_FREE_GB` free after what the other running lanes have reserved, and skips the item if not.
+- **An unplugged drive is not an empty folder.** On macOS the lanes check that the volume holding `ARK_ROOT` is mounted. On every system they also notice if `ARK_ROOT` moves to a different filesystem mid-run, as when a Linux drive is unmounted and its empty mount folder remains. A lane then waits, checking every `ARK_WAIT_INTERVAL` seconds (10 minutes by default) for up to `ARK_WAIT_HOURS`, and carries on when the drive is back.
+- **No accounts.** No login is used or sent: personal aria2 and curl settings, saved git credentials, and Hugging Face tokens are all ignored. Gated Hugging Face repositories are skipped.
 - **Nothing downloaded is run.** Git clones have hooks, submodules, symlinks, and LFS downloads turned off.
 
 ## Requirements
@@ -93,9 +93,11 @@ In `files.tsv`, the check is `sha256` or `md5` (the value goes in the checksum c
 | `ARK_MIN_FREE_GB` | `20` | Free space to keep on the archive drive |
 | `ARK_CONNECTIONS` | `4` | Connections for one file, spread over mirrors |
 | `ARK_PER_SERVER` | `2` | Connections to any single server |
-| `ARK_MAX_SPEED` | empty | Download rate cap such as `5M`; empty means none |
+| `ARK_MAX_SPEED` | empty | Rate cap for the files lane, such as `5M`; empty means none |
 | `ARK_PASSES` | `3` | Passes over the list before a lane stops |
 | `ARK_RETRY_WAIT` | `300` | Seconds between passes |
+| `ARK_WAIT_HOURS` | `24` | How long a lane waits for a missing archive drive before stopping |
+| `ARK_WAIT_INTERVAL` | `600` | Seconds between checks while waiting for the drive |
 | `ARK_MOUNT` | the macOS volume holding `ARK_ROOT` | Path that must be a mount point; set it empty to skip the check |
 | `ARK_OLLAMA_STORE` | `$ARK_ROOT/models/ollama` | Where Ollama models are stored |
 | `ARK_OLLAMA_HOST` | `127.0.0.1:11436` | Address of the private Ollama server the models lane starts |

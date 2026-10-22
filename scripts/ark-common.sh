@@ -25,6 +25,8 @@ ARK_PER_SERVER=${ARK_PER_SERVER:-2}                  # connections to any single
 ARK_MAX_SPEED=${ARK_MAX_SPEED:-}                     # optional cap such as 5M (bytes per second); empty = none
 ARK_PASSES=${ARK_PASSES:-3}                          # passes over the list before a lane stops
 ARK_RETRY_WAIT=${ARK_RETRY_WAIT:-300}                # seconds between passes
+ARK_WAIT_HOURS=${ARK_WAIT_HOURS:-24}                 # how long a lane waits for a missing drive before stopping
+ARK_WAIT_INTERVAL=${ARK_WAIT_INTERVAL:-600}          # seconds between checks while waiting for the drive
 ARK_USER_AGENT=${ARK_USER_AGENT:-ark-offline-kit/1.0}
 
 # ARK_MOUNT: a mount point that must be mounted before anything is written. On macOS it defaults
@@ -56,27 +58,69 @@ ark_helper() { python3 -I "$ARK_SCRIPTS/ark-helper.py" "$@"; }
 ark_gb() { awk -v b="${1:-0}" 'BEGIN { printf "%.2f", b / 1e9 }'; }
 
 # ark_ready: true when ARK_ROOT exists and, if ARK_MOUNT is set, that path is a mount point.
+# A lane also remembers which filesystem ARK_ROOT was on when it started, so a drive that is
+# unmounted mid-run (leaving an empty mount-point folder behind, as on Linux) is noticed.
+ark_dev() { stat -c %d "$1" 2>/dev/null || stat -f %d "$1" 2>/dev/null; }
+ARK_DEV=
 ark_ready() {
   [ -d "$ARK_ROOT" ] || return 1
   if [ -n "$ARK_MOUNT" ]; then
     python3 -I -c 'import os, sys; sys.exit(0 if os.path.ismount(sys.argv[1]) else 1)' "$ARK_MOUNT" || return 1
   fi
+  if [ -n "$ARK_DEV" ] && [ "$(ark_dev "$ARK_ROOT")" != "$ARK_DEV" ]; then return 1; fi
   return 0
+}
+
+# ark_wait_ready <lane>: wait up to ARK_WAIT_HOURS for the archive; false if it never returns.
+ark_wait_ready() {
+  local i=0 limit=$(( ARK_WAIT_HOURS * 3600 / ARK_WAIT_INTERVAL ))
+  ark_ready && return 0
+  ark_log "$1: archive not available; checking every $ARK_WAIT_INTERVAL seconds for up to $ARK_WAIT_HOURS hours"
+  while [ "$i" -lt "$limit" ]; do
+    sleep "$ARK_WAIT_INTERVAL"
+    ark_ready && { ark_state "$1" lane RESUMED "archive available again"; return 0; }
+    i=$(( i + 1 ))
+  done
+  return 1
 }
 
 ark_free_bytes() { df -Pk "$ARK_ROOT" 2>/dev/null | awk 'NR == 2 { printf "%.0f", $4 * 1024 }'; }
 
-# ark_room_for <bytes>: true if downloading that many more bytes keeps ARK_MIN_FREE_GB free.
+# Space reservations: while a lane downloads, it records how many bytes it still needs, so lanes
+# running at the same time do not each count the same free space.
+ark_reserve() { [ -n "${ARK_LANE:-}" ] && printf '%s\n' "${1:-0}" > "$ARK_LOGS/reserve-$ARK_LANE" 2>/dev/null; return 0; }
+ark_reserved_by_others() {
+  local f lane pid n total=0
+  for f in "$ARK_LOGS"/reserve-*; do
+    [ -f "$f" ] || continue
+    lane=${f##*/reserve-}
+    [ "$lane" = "${ARK_LANE:-}" ] && continue
+    pid=$(cat "$ARK_LOGS/lane-$lane.pid" 2>/dev/null)
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || continue
+    n=$(cat "$f" 2>/dev/null)
+    case $n in ''|*[!0-9]*) n=0 ;; esac
+    total=$(( total + n ))
+  done
+  echo "$total"
+}
+
+# ark_room_for <bytes>: true if downloading that many more bytes keeps ARK_MIN_FREE_GB free,
+# after what other running lanes have reserved.
 ark_room_for() {
   local need=${1:-0} free
   free=$(ark_free_bytes)
   [ -n "$free" ] || return 1
-  [ $(( free - need )) -gt $(( ARK_MIN_FREE_GB * 1000000000 )) ]
+  [ $(( free - need - $(ark_reserved_by_others) )) -gt $(( ARK_MIN_FREE_GB * 1000000000 )) ]
 }
 
 ark_size() {
   [ -f "$1" ] || { echo 0; return; }
   stat -c %s "$1" 2>/dev/null || stat -f %z "$1" 2>/dev/null || wc -c < "$1" | tr -d ' '
+}
+# Bytes actually written to disk. A partial aria2c download can look full-size while mostly empty.
+ark_alloc_bytes() {
+  [ -f "$1" ] || { echo 0; return; }
+  du -k "$1" 2>/dev/null | awk '{ printf "%.0f", $1 * 1024 }'
 }
 ark_dir_bytes() {
   [ -d "$1" ] || { echo 0; return; }
@@ -121,7 +165,8 @@ ark_tier_on() { case " $ARK_TIERS " in *" $1 "*) return 0 ;; esac; return 1; }
 ark_state() {
   local lane=$1 id=$2 st=$3
   shift 3
-  printf '%s\t%s\t%s\t%s\t%s\n' "$(ark_now)" "$lane" "$id" "$st" "$*" >> "$ARK_LOGS/state.tsv"
+  # If the drive has gone, the log line still reaches the terminal.
+  printf '%s\t%s\t%s\t%s\t%s\n' "$(ark_now)" "$lane" "$id" "$st" "$*" >> "$ARK_LOGS/state.tsv" 2>/dev/null
   ark_log "$lane $id $st $*"
 }
 ark_last_state() {
@@ -138,15 +183,18 @@ ark_done() {
 }
 
 # ark_items_left <lane>: items in this lane's plan that are not finished or skipped for space.
+# Prints "unknown" when the plan or state cannot be read, so the lane does not stop early.
 ark_items_left() {
-  local f n=0
+  local f n=0 found=0
+  [ -r "$ARK_LOGS/state.tsv" ] || { echo unknown; return; }
   for f in "$ARK_LOGS"/items-"$1"*.tsv; do
     [ -f "$f" ] || continue
+    found=1
     n=$(( n + $(awk -F'\t' 'FILENAME == ARGV[1] { if ($3 != "lane") s[$3] = $4; next }
       { st = s[$1]; if (st != "VERIFIED" && st != "RECORDED" && st != "SKIPPED-SPACE" && st != "SKIPPED") c++ }
       END { print c + 0 }' "$ARK_LOGS/state.tsv" "$f") ))
   done
-  echo "$n"
+  if [ "$found" = 1 ]; then echo "$n"; else echo unknown; fi
 }
 
 # --- Lane lifecycle -----------------------------------------------------------------------
@@ -162,20 +210,30 @@ ark_lane_start() {
   fi
   echo $$ > "$pidf"
   touch "$ARK_LOGS/state.tsv"
+  ARK_DEV=$(ark_dev "$ARK_ROOT")
+  ark_reserve 0
   ark_state "$ARK_LANE" lane START "pid $$; tiers: $ARK_TIERS${ARK_ONLY:+; only: $ARK_ONLY}; root: $ARK_ROOT"
+  if [ -z "$ARK_MOUNT" ] && [ "$ARK_DEV" = "$(ark_dev /)" ]; then
+    ark_log "note: ARK_ROOT is on the same filesystem as / . If you meant an external drive, check that it is mounted."
+  fi
 }
-ark_lane_end() { ark_state "$ARK_LANE" lane END "pid $$; $(ark_items_left "$ARK_LANE") item(s) not finished"; }
+ark_lane_end() {
+  ark_reserve 0
+  ark_state "$ARK_LANE" lane END "pid $$; $(ark_items_left "$ARK_LANE") item(s) not finished"
+}
 
 # ark_run_passes <lane> <function>: run the function up to ARK_PASSES times. The function returns
-# 2 when the archive drive disappears; the lane then waits 10 minutes and tries again.
+# 2 when the archive drive disappears; the lane waits for it (up to ARK_WAIT_HOURS) without using
+# up a pass, then carries on.
 ark_run_passes() {
   local lane=$1 fn=$2 pass=1 rc left
   while [ "$pass" -le "$ARK_PASSES" ]; do
-    "$fn"; rc=$?
-    if [ "$rc" = 2 ]; then
-      ark_state "$lane" lane WAITING "archive not available; checking again in 10 minutes"
-      sleep 600; pass=$(( pass + 1 )); continue
+    if ! ark_wait_ready "$lane"; then
+      ark_state "$lane" lane WAITING "archive still not available after $ARK_WAIT_HOURS hours; stopping. Run the lane again when it is back"
+      return 1
     fi
+    "$fn"; rc=$?
+    [ "$rc" = 2 ] && continue
     left=$(ark_items_left "$lane")
     [ "$left" = 0 ] && break
     if [ "$pass" -lt "$ARK_PASSES" ]; then
@@ -192,7 +250,8 @@ ark_run_passes() {
 ark_fetch() {
   local url=$1 dir=$2 name=$3 meta=${4:-} integ=${5:-false}
   if ark_has aria2c; then
-    set -- --dir="$dir" --continue=true --check-integrity="$integ" --file-allocation=none \
+    # --no-conf and --no-netrc: ignore personal aria2 settings and saved logins.
+    set -- --no-conf=true --no-netrc=true --dir="$dir" --continue=true --check-integrity="$integ" --file-allocation=none \
       --auto-file-renaming=false --allow-overwrite=false --max-tries=30 --retry-wait=30 \
       --timeout=60 --lowest-speed-limit=10K --summary-interval=300 --console-log-level=warn \
       --enable-color=false --user-agent="$ARK_USER_AGENT" --min-split-size=32M
@@ -204,16 +263,17 @@ ark_fetch() {
       aria2c "$@" --split="$ARK_PER_SERVER" --max-connection-per-server="$ARK_PER_SERVER" --out="$name" "$url"
     fi
   else
-    set -- -fL --retry 10 --retry-delay 30 --connect-timeout 60 -C - -A "$ARK_USER_AGENT" -o "$dir/$name"
+    # -q (first) ignores a personal .curlrc.
+    set -- -q -fL --retry 10 --retry-delay 30 --connect-timeout 60 -C - -A "$ARK_USER_AGENT" -o "$dir/$name"
     [ -n "$ARK_MAX_SPEED" ] && set -- "$@" --limit-rate "$ARK_MAX_SPEED"
     curl "$@" "$url"
   fi
 }
 
-# Git with everything that could run repository code turned off. Archived repositories are
-# reading material; nothing in them is executed.
+# Git with everything that could run repository code turned off, and no saved credentials offered
+# to any server. Archived repositories are reading material; nothing in them is executed.
 ark_git() {
-  GIT_TERMINAL_PROMPT=0 GIT_LFS_SKIP_SMUDGE=1 git -c core.hooksPath=/dev/null -c core.fsmonitor=false \
+  GIT_TERMINAL_PROMPT=0 GIT_LFS_SKIP_SMUDGE=1 git -c credential.helper= -c core.hooksPath=/dev/null -c core.fsmonitor=false \
     -c core.symlinks=false -c protocol.file.allow=never -c submodule.recurse=false \
     -c advice.detachedHead=false "$@"
 }

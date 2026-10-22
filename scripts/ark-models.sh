@@ -38,7 +38,9 @@ start_ollama() {
     return 1
   fi
   # OLLAMA_NOPRUNE keeps Ollama from removing unreferenced files from the store at startup.
-  OLLAMA_MODELS="$ARK_OLLAMA_STORE" OLLAMA_HOST="$ARK_OLLAMA_HOST" OLLAMA_NOPRUNE=1 \
+  # HOME points inside the archive so the server's identity key is not written to your home folder.
+  mkdir -p "$ARK_LOGS/ollama-home"
+  HOME="$ARK_LOGS/ollama-home" OLLAMA_MODELS="$ARK_OLLAMA_STORE" OLLAMA_HOST="$ARK_OLLAMA_HOST" OLLAMA_NOPRUNE=1 \
     nohup ollama serve >> "$ARK_LOGS/ollama-serve.log" 2>&1 < /dev/null &
   OPID=$!
   while [ "$i" -lt 60 ]; do
@@ -90,9 +92,11 @@ do_ollama() {
     fi
     log="$ARK_LOGS/ollama-pull-$(printf '%s' "$model" | tr -c 'A-Za-z0-9._-' '_').jsonl"
     ark_state models "$id" DOWNLOADING "pull from registry.ollama.ai (about $(ark_gb "$bytes") GB)"
-    curl -sN --max-time 86400 -H 'Content-Type: application/json' \
+    ark_reserve "$bytes"
+    curl -q -sN --max-time 86400 -H 'Content-Type: application/json' \
       -d "{\"model\":\"$model\",\"name\":\"$model\",\"stream\":true}" \
       "http://$ARK_OLLAMA_HOST/api/pull" > "$log" 2>&1
+    ark_reserve 0
     if tail -n 1 "$log" | grep -q '"status":"success"'; then
       if detail=$(ark_helper ollama-verify "$ARK_OLLAMA_STORE" "$model"); then
         ark_state models "$id" VERIFIED "$detail"
@@ -108,33 +112,34 @@ do_ollama() {
 }
 
 do_hf() {
-  local plan="$ARK_LOGS/plan-hf.tsv" id tier repo kind subdir include rev bytes dir have need p oldifs detail
+  local plan="$ARK_LOGS/plan-hf.tsv" id tier repo kind subdir include rev bytes need dir p oldifs detail
   ark_helper hf-plan "$plan" "$ARK_LOGS/items-models-hf.tsv" || return 1
   [ -s "$plan" ] || return 0
   if ! ark_has hf; then
     mark_skipped "$plan" "the Hugging Face 'hf' tool is not installed (pip install -U huggingface_hub)"
     return 0
   fi
-  # No login, no telemetry, no token from your usual Hugging Face settings, no extra cache.
+  # No login, no telemetry, no token from your usual Hugging Face settings or environment, no
+  # extra cache, and a limited number of parallel range requests per file.
+  unset HF_TOKEN HUGGING_FACE_HUB_TOKEN
   HF_HOME=${ARK_HF_HOME:-$ARK_LOGS/hf-home}
   export HF_HOME HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_DISABLE_IMPLICIT_TOKEN=1 \
-    HF_HUB_DISABLE_PROGRESS_BARS=1 HF_XET_CHUNK_CACHE_SIZE_BYTES=0
-  while IFS=$'\t' read -r id tier repo kind subdir include rev bytes <&3; do
+    HF_HUB_DISABLE_PROGRESS_BARS=1 HF_XET_CHUNK_CACHE_SIZE_BYTES=0 \
+    HF_XET_NUM_CONCURRENT_RANGE_GETS="$ARK_CONNECTIONS"
+  while IFS=$'\t' read -r id tier repo kind subdir include rev bytes need <&3; do
     [ -n "$id" ] || continue
     ark_done "$id" && continue
     ark_ready || return 2
     [ "$include" = "-" ] && include=
     [ "$bytes" = "-" ] && bytes=0
+    case $need in ''|-|*[!0-9]*) need=$bytes ;; esac
     dir="$ARK_ROOT/$subdir"
-    have=$(ark_dir_bytes "$dir")
-    need=0
-    if [ "$bytes" -gt "$have" ]; then need=$(( bytes - have )); fi
     if ! ark_room_for "$need"; then
       ark_state models "$id" SKIPPED-SPACE "needs about $(ark_gb "$need") GB more; $(ark_gb "$(ark_free_bytes)") GB free; keeping $ARK_MIN_FREE_GB GB free"
       continue
     fi
     mkdir -p "$dir" || { ark_state models "$id" FAILED "cannot create $dir"; continue; }
-    set -- download "$repo" --revision "$rev" --local-dir "$dir" --max-workers "$ARK_CONNECTIONS"
+    set -- download "$repo" --revision "$rev" --local-dir "$dir" --max-workers "$ARK_PER_SERVER"
     [ "$kind" = dataset ] && set -- "$@" --repo-type dataset
     oldifs=$IFS; IFS=,; set -f
     for p in $include; do
@@ -142,13 +147,16 @@ do_hf() {
     done
     set +f; IFS=$oldifs
     ark_state models "$id" DOWNLOADING "$repo at commit ${rev:0:12} ($(ark_gb "$bytes") GB)"
+    ark_reserve "$need"
     if hf "$@" >> "$ARK_LOGS/hf-download.log" 2>&1 < /dev/null; then
+      ark_reserve 0
       if detail=$(ark_helper hf-verify "$repo" "$kind" "$rev" "$dir" "$include"); then
         ark_state models "$id" VERIFIED "$detail"
       else
         ark_state models "$id" VERIFY-FAILED "$detail"
       fi
     else
+      ark_reserve 0
       ark_state models "$id" FAILED "hf download stopped; it resumes next pass (details in hf-download.log)"
     fi
   done 3< "$plan"

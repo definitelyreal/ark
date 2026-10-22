@@ -31,7 +31,7 @@ verify_one() {
       algo=${check%-url}
       src=${sum:-$url.$algo}
       # A one-line checksum file gives its first field; a SUMS file gives the line naming this file.
-      want=$(curl -fsSL --retry 5 -A "$ARK_USER_AGENT" "$src" | awk -v f="$fname" '
+      want=$(curl -q -fsSL --retry 5 -A "$ARK_USER_AGENT" "$src" | awk -v f="$fname" '
         NR == 1 { first = $1 }
         { n = $2; sub(/^\*/, "", n); sub(/^.*\//, "", n); if (n == f) { print $1; hit = 1; exit } }
         END { if (!hit && NR == 1) print first }')
@@ -74,7 +74,7 @@ verify_one() {
 }
 
 run_pass() {
-  local id tier subdir fname url bytes check sum dir out have need prev complete meta integ
+  local id tier subdir fname url bytes check sum dir out have written need prev complete meta integ before
   if ! ark_helper files-plan "$PLAN" "$ARK_LOGS/items-files.tsv"; then
     ark_state files plan FAILED "could not build the download list (message above)"
     return 1
@@ -92,8 +92,9 @@ run_pass() {
       continue
     fi
     have=$(ark_size "$out")
+    written=$(ark_alloc_bytes "$out")
     need=0
-    if [ -n "$bytes" ] && [ "$bytes" -gt "$have" ]; then need=$(( bytes - have )); fi
+    if [ -n "$bytes" ] && [ "$bytes" -gt "$written" ]; then need=$(( bytes - written )); fi
     if ! ark_room_for "$need"; then
       ark_state files "$id" SKIPPED-SPACE "needs $(ark_gb "$need") GB more; $(ark_gb "$(ark_free_bytes)") GB free; keeping $ARK_MIN_FREE_GB GB free"
       continue
@@ -104,17 +105,29 @@ run_pass() {
     if [ -z "$bytes" ] && [ "$have" -gt 0 ] && [ "$prev" = DOWNLOADED ]; then complete=1; fi
     if [ "$complete" = 0 ]; then
       ark_state files "$id" DOWNLOADING "$url${bytes:+ ($(ark_gb "$bytes") GB)}"
+      ark_reserve "$need"
       meta=
       if [ "$check" = kiwix ] && ark_has aria2c; then
         meta="$dir/$fname.meta4"
-        curl -fsSL --retry 5 -A "$ARK_USER_AGENT" -o "$meta" "$url.meta4" 2>> "$DLOG" || meta=
+        curl -q -fsSL --retry 5 -A "$ARK_USER_AGENT" -o "$meta" "$url.meta4" 2>> "$DLOG" || meta=
       fi
       integ=false
       [ "$prev" = VERIFY-FAILED ] && integ=true
+      before=$(ark_alloc_bytes "$out")
       if ! ark_fetch "$url" "$dir" "$fname" "$meta" "$integ" >> "$DLOG" 2>&1; then
-        ark_state files "$id" FAILED "download stopped at $(ark_size "$out") bytes; it resumes next pass (details in files-download.log)"
+        ark_reserve 0
+        # A partial file that makes no progress after repeated tries (for example from a server
+        # that cannot resume) is moved aside so the next pass starts it fresh.
+        if [ "$(ark_alloc_bytes "$out")" = "$before" ] && [ "$(ark_count_state "$id" FAILED)" -ge 2 ]; then
+          ark_move_aside "$out" stalled
+          ark_move_aside "$out.aria2" stalled
+          ark_state files "$id" FAILED "no progress after several tries; moved the partial file aside, next pass starts over"
+        else
+          ark_state files "$id" FAILED "download stopped at $(ark_size "$out") bytes; it resumes next pass (details in files-download.log)"
+        fi
         continue
       fi
+      ark_reserve 0
       have=$(ark_size "$out")
       if [ -n "$bytes" ] && [ "$have" != "$bytes" ]; then
         ark_state files "$id" FAILED "have $have of $bytes bytes after the download; it resumes next pass"

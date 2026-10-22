@@ -159,6 +159,22 @@ def last_states():
     return out
 
 
+def record_state(lane, ident, state, detail):
+    """Append one line to the shared state log, in the same format the shell lanes write."""
+    path = os.path.join(env("ARK_LOGS"), "state.tsv")
+    with open(path, "a", encoding="utf-8") as f:
+        f.write("\t".join([now(), lane, ident, state, detail.replace("\t", " ").replace("\n", " ")]) + "\n")
+
+
+def move_aside(path, why):
+    """Rename instead of deleting, matching ark_move_aside in ark-common.sh."""
+    if os.path.lexists(path):
+        dest = f"{path}.{why}-{time.strftime('%Y%m%d-%H%M%S')}"
+        os.rename(path, dest)
+        return dest
+    return None
+
+
 def sha256_file(path):
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -187,9 +203,9 @@ def resolve_kiwix(category, prefix, listings):
         return None
     fname = cands[-1][0]
     url = base + fname
-    sha = get_text(url + ".sha256").split()[0].lower()
+    sha = (get_text(url + ".sha256").split() or [""])[0].lower()
     if not re.fullmatch(r"[0-9a-f]{64}", sha):
-        fail(f"Kiwix checksum for {fname} is not a SHA-256 value")
+        raise ValueError(f"the published checksum for {fname} is not a SHA-256 value")
     return [prefix, category, fname, url, remote_size(url) or "", sha, now()]
 
 
@@ -205,13 +221,20 @@ def cmd_files_plan(plan_path, items_path):
         subdir = safe_subdir(subdir, "kiwix.tsv")
         r = pinned.get(prefix)
         if not r:
+            problem = ""
             try:
                 r = resolve_kiwix(category, prefix, listings)
+                if r is None:
+                    problem = f"no {prefix}_YYYY-MM.zim in {KIWIX}/{category}/ (renamed or retired?)"
             except Exception as e:
-                sys.stderr.write(f"ark-helper: could not look up {category}/{prefix} on Kiwix ({e}); will retry next pass\n")
-                continue
-            if r is None:
-                sys.stderr.write(f"ark-helper: no {prefix}_YYYY-MM.zim in {KIWIX}/{category}/ (renamed or retired?)\n")
+                problem = f"could not look it up on Kiwix ({e}); will retry next pass"
+            if problem:
+                # Keep the item visible and unfinished, so status shows it and the lane tries again.
+                ident = "kiwix:" + prefix
+                items.append([ident, "files", tier, os.path.join(root, subdir), "", "SHA-256 published by Kiwix",
+                              f"{KIWIX}/{category}/"])
+                record_state("files", ident, "FAILED", problem)
+                sys.stderr.write(f"ark-helper: {prefix}: {problem}\n")
                 continue
             pinned[prefix] = r
             new.append(r)
@@ -293,7 +316,13 @@ def cmd_ollama_verify(store, model):
         elif rehash and digest.startswith("sha256:") and sha256_file(blob) != digest[7:]:
             bad.append("sha256 " + digest[:19])
     if bad:
-        print("FAIL " + "; ".join(bad[:5]))
+        moved = 0
+        for layer in layers:
+            digest = layer["digest"]
+            if any(digest[:19] in b for b in bad):
+                if move_aside(os.path.join(store, "blobs", digest.replace(":", "-")), "bad"):
+                    moved += 1
+        print("FAIL " + "; ".join(bad[:5]) + f"; moved {moved} bad layer file(s) aside, next pass fetches them again")
         sys.exit(1)
     how = "SHA-256 re-hashed" if rehash else "sizes checked"
     print(f"OK {len(layers)} blobs, {total} bytes, {how}")
@@ -334,31 +363,50 @@ def cmd_hf_plan(plan_path, items_path):
         if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
             fail(f"huggingface.tsv item {name}: '{repo}' is not an owner/name repository id")
         subdir = safe_subdir(subdir, "huggingface.tsv")
+        dest = os.path.join(root, subdir)
+        item = [ident, "models", tier, dest, "", "per-file SHA-256 (large files) or git blob hash (small files) from the Hub",
+                f"{HF}/{repo}"]
+        listing = os.path.join(logs, f"hf-files-{re.sub(r'[^A-Za-z0-9._-]', '_', name)}.tsv")
         p = pinned.get(name)
         if not p or p[1] != repo or p[5:6] != [include]:
             if states.get(ident, ("", ""))[1] in DONE and p:
                 pass
             else:
+                problem, state = "", "FAILED"
                 try:
                     info = get_json(f"{HF}/api/{kind}s/{repo}")
                     if info.get("gated"):
-                        sys.stderr.write(f"ark-helper: {repo} is gated (needs a Hugging Face account and accepted terms); skipped\n")
-                        continue
-                    rev = info["sha"]
-                    files = hf_filter(hf_tree(kind, repo, rev), include)
+                        problem, state = "gated: needs a Hugging Face account and accepted terms; download it yourself", "SKIPPED"
+                    else:
+                        rev = info["sha"]
+                        files = hf_filter(hf_tree(kind, repo, rev), include)
+                        if not files:
+                            problem = f"no files match '{include}'; check the include patterns"
                 except Exception as e:
-                    sys.stderr.write(f"ark-helper: could not read {repo} from Hugging Face ({e}); will retry next pass\n")
-                    continue
-                if not files:
-                    sys.stderr.write(f"ark-helper: no files in {repo} match '{include}'; check the include patterns\n")
+                    problem = f"could not read it from Hugging Face ({e}); will retry next pass"
+                if problem:
+                    items.append(item)
+                    record_state("models", ident, state, problem)
+                    sys.stderr.write(f"ark-helper: {repo}: {problem}\n")
                     continue
                 p = [name, repo, rev, sum(f.get("size", 0) for f in files), len(files), include, now()]
                 pinned[name] = p
                 new.append(p)
-        plan.append([ident, tier, repo, kind, subdir, include, p[2], p[3]])
-        items.append([ident, "models", tier, os.path.join(root, subdir), p[3],
-                      "per-file SHA-256 (large files) or git blob hash (small files) from the Hub",
-                      f"{HF}/{repo}"])
+                write_tsv(listing, [[f["path"], f.get("size", 0)] for f in files])
+        total = int(p[3]) if str(p[3]).isdigit() else 0
+        # Bytes still needed: the pinned file list minus what is already on disk for this item.
+        need = total
+        if os.path.exists(listing):
+            have = 0
+            for path, size in (r[:2] for r in read_tsv(listing) if len(r) >= 2):
+                try:
+                    have += min(os.path.getsize(os.path.join(dest, path)), int(size))
+                except (OSError, ValueError):
+                    pass
+            need = max(0, total - have)
+        plan.append([ident, tier, repo, kind, subdir, include, p[2], total, need])
+        item[4] = total
+        items.append(item)
     if new:
         append_tsv(pinned_path, new)
     write_tsv(plan_path, plan)
@@ -372,7 +420,7 @@ def cmd_hf_verify(repo, kind, rev, local, include):
     except Exception as e:
         print(f"FAIL could not read the file list from Hugging Face: {e}")
         sys.exit(1)
-    bad, total = [], 0
+    bad, wrong, total = [], [], 0
     for f in files:
         p = os.path.join(local, f["path"])
         if not os.path.isfile(p):
@@ -381,16 +429,25 @@ def cmd_hf_verify(repo, kind, rev, local, include):
         size = os.path.getsize(p)
         if size != f.get("size"):
             bad.append(f"size {f['path']} {size} != {f.get('size')}")
+            wrong.append(f["path"])
             continue
         lfs = f.get("lfs") or {}
         if lfs.get("oid"):
             if sha256_file(p) != lfs["oid"]:
                 bad.append("sha256 " + f["path"])
+                wrong.append(f["path"])
         elif git_blob_sha1(p) != f.get("oid"):
             bad.append("git-sha1 " + f["path"])
+            wrong.append(f["path"])
         total += size
     if bad or not files:
-        print("FAIL " + ("; ".join(bad[:5]) if bad else "no files matched"))
+        # Rename wrong files and the download record hf keeps for them, so the next pass
+        # downloads them again instead of trusting the record.
+        for path in wrong:
+            move_aside(os.path.join(local, path), "bad")
+            move_aside(os.path.join(local, ".cache", "huggingface", "download", path + ".metadata"), "bad")
+        extra = f"; moved {len(wrong)} wrong file(s) aside" if wrong else ""
+        print("FAIL " + ("; ".join(bad[:5]) if bad else "no files matched") + extra)
         sys.exit(1)
     print(f"OK {len(files)} files, {total} bytes at commit {rev[:12]}")
 

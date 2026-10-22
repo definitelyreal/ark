@@ -28,18 +28,30 @@ ARK_GITHUB_FLAG_AFTER=${ARK_GITHUB_FLAG_AFTER:-}
 export ARK_GITHUB_TOP
 GLOG="$ARK_LOGS/git-clone.log"
 
-# clone_one <url> <dir>: 0 when <dir> holds a complete clone. A broken earlier attempt is moved aside.
+# clone_complete <dir>: HEAD resolves, the index was written, and no tracked file is missing.
+# (Missing files, not changed ones, mark an interrupted checkout: on a case-insensitive disk a
+# repository with names differing only in case shows changed files even when complete.)
+clone_complete() {
+  local missing
+  ark_git -C "$1" rev-parse -q --verify HEAD >/dev/null 2>&1 || return 1
+  [ -f "$1/.git/index" ] || return 1
+  missing=$(ark_git -C "$1" ls-files --deleted 2>/dev/null | head -n 1) || return 1
+  [ -z "$missing" ]
+}
+
+# clone_one <url> <dir>: 0 when <dir> holds a complete clone. An incomplete earlier attempt is moved aside.
 clone_one() {
   local url=$1 dir=$2
-  if [ -d "$dir/.git" ] && ark_git -C "$dir" rev-parse -q --verify HEAD >/dev/null 2>&1; then return 0; fi
+  if [ -d "$dir/.git" ] && clone_complete "$dir"; then return 0; fi
   ark_move_aside "$dir" partial
   mkdir -p "$(dirname "$dir")" || return 1
-  ark_git clone -c core.symlinks=false -c core.hooksPath=/dev/null --depth 1 --no-recurse-submodules \
-    --quiet "$url" "$dir" < /dev/null
+  ark_git clone -c core.symlinks=false -c core.hooksPath=/dev/null -c credential.helper= --depth 1 \
+    --no-recurse-submodules --quiet "$url" "$dir" < /dev/null || return 1
+  clone_complete "$dir"
 }
 
 do_clamav() {
-  local db="$ARK_ROOT/software/clamav-db" conf="$ARK_LOGS/freshclam.conf" f res=
+  local db="$ARK_ROOT/software/clamav-db" conf="$ARK_LOGS/freshclam.conf" f res= rc
   ark_done clamav-db && return 0
   if ! ark_has freshclam || ! ark_has sigtool; then
     ark_state git clamav-db SKIPPED "ClamAV is not installed (https://www.clamav.net/downloads)"
@@ -49,7 +61,10 @@ do_clamav() {
   printf 'DatabaseDirectory %s\nDatabaseMirror database.clamav.net\nUpdateLogFile %s\nLogTime yes\nForeground yes\n' \
     "$db" "$ARK_LOGS/freshclam.log" > "$conf"
   ark_state git clamav-db DOWNLOADING "freshclam into $db"
-  if freshclam --config-file="$conf" >> "$ARK_LOGS/freshclam.out" 2>&1 < /dev/null; then
+  freshclam --config-file="$conf" >> "$ARK_LOGS/freshclam.out" 2>&1 < /dev/null
+  rc=$?
+  # freshclam exits 0 after an update and 1 when the database is already up to date.
+  if [ "$rc" = 0 ] || [ "$rc" = 1 ]; then
     for f in "$db"/*.cvd "$db"/*.cld; do
       [ -e "$f" ] || continue
       if sigtool --info="$f" 2>&1 | grep -q 'Verification OK'; then res="$res $(basename "$f"):OK"
@@ -72,15 +87,19 @@ do_repo() { # id url subdir
     return 0
   fi
   ark_state git "$id" DOWNLOADING "$url"
+  ark_reserve $(( ARK_GIT_RESERVE_GB * 1000000000 ))
   if clone_one "$url" "$dir" >> "$GLOG" 2>&1; then
+    ark_reserve 0
     if ! ark_git -C "$dir" fsck --connectivity-only --no-dangling >> "$GLOG" 2>&1; then
-      ark_state git "$id" VERIFY-FAILED "git fsck reported a problem (see git-clone.log)"
+      ark_move_aside "$dir" bad
+      ark_state git "$id" VERIFY-FAILED "git fsck reported a problem (see git-clone.log); moved the clone aside, next pass clones again"
       return 0
     fi
     head=$(ark_git -C "$dir" rev-parse HEAD)
     ark_state git "$id" VERIFIED "HEAD $head; $(ark_gb "$(ark_dir_bytes "$dir")") GB"
   else
-    ark_state git "$id" FAILED "git clone failed (see git-clone.log); next pass tries again"
+    ark_reserve 0
+    ark_state git "$id" FAILED "git clone did not complete (see git-clone.log); next pass tries again"
   fi
 }
 
@@ -128,7 +147,14 @@ do_github() {
     fi
     sleep 1
   done 3< "$list"
-  ark_state git github-top VERIFIED "$(grep -c ',cloned,' "$man") cloned, $(grep -c ',FAILED,' "$man") failed; HEAD commits in $man"
+  # Finished only when every listed repository's latest manifest row says cloned.
+  failed=$(awk -F, 'NR > 1 { s[$2] = $9 } END { n = 0; for (k in s) if (s[k] != "cloned") n++; print n }' "$man")
+  cloned=$(awk -F, 'NR > 1 { s[$2] = $9 } END { n = 0; for (k in s) if (s[k] == "cloned") n++; print n }' "$man")
+  if [ "$failed" = 0 ]; then
+    ark_state git github-top VERIFIED "$cloned cloned; HEAD commits in $man"
+  else
+    ark_state git github-top FAILED "$cloned cloned, $failed failed; the next pass retries the failed ones"
+  fi
 }
 
 run_pass() {
