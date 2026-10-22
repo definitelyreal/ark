@@ -1,5 +1,4 @@
-<!-- ai-suggestion:unverified | date:2026-10-22 -->
-*This page is part of [Ark](../README.md), a free plan for building an offline computer that keeps working when the internet or your main computer doesn't.*
+*This page is part of [Ark](../README.md), the blueprint I used for an offline computer that keeps working if the internet  when the internet or your main computer doesn't.*
 
 # Find and fix your security vulnerabilities
 
@@ -24,13 +23,20 @@ Copy the prompt below into Claude with the copy button at the top right of the b
 ```text
 Please do a defensive security review of my own computers, phones and online accounts, and help me fix what you find. Explain everything in plain English; I'm not a security expert.
 
-Start by asking what I have: computers (Mac, Windows, Linux) and any servers I rent, phones, email and cloud accounts, websites or web hosting, domains, my home network, crypto (on an exchange or in my own wallet), and AI or developer tools that use keys. Also ask what I use my computer for (for example creative work with plug-ins, writing code, running a website or small business, holding crypto, traveling, or having a public profile), since that changes what to watch for. Then pick the checks below that fit and skip the rest. You can only run commands on this computer (plus SSH or cloud command-line tools I already use from here, with my yes): for everything else, walk me through the settings screens and record what I tell you. If you can't run commands at all, give me read-only ones to run and paste back, written so they don't print secrets. Look up vendor security advisories and CISA's Known Exploited Vulnerabilities list for the software I actually use. Don't fetch exploit code.
+First, ask me how much time I have and what level of scan I want. Offer several options based on a quick scan of my computer, with rough estimates of credit use and my time. Before doing a scan of anything that might leave secrets in our transcript, confirm that I have the time to follow through with what you find. Track your progress so future sessions can pick up on progress. Create a single folder to hold all the information from this work, which is designed to be deleted along with the transcript of this chat when we are done. Adapt the following to my answers, what you discover, and your best judgment.
 
-On every step: explain it in one plain sentence, get my yes, say how to undo it, prove it worked, and update the dashboard once it exists, adding earlier steps.
+Then do a thorough scan using subagents of security news for the past month, including active exploits.
+In parallel, do a thorough scan of my computer and system.
+
+Then confirm my devices with me (you should be able to figure out most of this from your scan): computers, servers, phones, email and cloud accounts, password managers, web hosting, domains, my home network, crypto, AI tools, shared access, IOT defvices, my patterns and what I use the computers for.
+
+Check with me before running commands, but try to get blanket permission rather than permission for every command. You can run commands on this computer (plus SSH or cloud command-line tools I already use from here, with my yes.) Try to get access to run commands yourself, and if you absolutely can't, give me read-only ones to run and paste back, written so they don't print secrets. Look up vendor security advisories and CISA's Known Exploited Vulnerabilities list for the software I actually use. Don't fetch exploit code.. 
+
+Explain what you are doing in single plain sentences, get my yes, say how to undo it, prove it worked, and update the dashboard once it exists, adding earlier steps.
 
 Ground rules:
 - Look before you touch. Check before each change, and rank risks by what can't be undone: stolen crypto, my email and messages copied out, my files deleted.
-- Ask before every change. Don't install, update, restart, or change any login, recovery or security setting without my yes, and install only from official sources. For security settings, walk me through it and let me click.
+- Ask before every change. Don't install, update, restart, or change any login, recovery or security setting without my yes, and install only from official sources. For security settings, walk me through it and let me click. (Prefer asking for a list of things rather than many prompts.)
 - Don't lock me out. Never remove a sign-in method, key or recovery option until its replacement is tested and working. On a machine I reach remotely, test a new login in a second session before changing firewall or remote-access settings, and set remote firewall changes to undo themselves after a few minutes unless I confirm. I'll turn on disk encryption myself and keep the recovery key on paper. Router and VPN changes go last, and I make them.
 - Before any change, save the original and show me how to restore it. Move or disable things instead of deleting them. If something looks compromised, stop and tell me; I decide what happens, and I'll change passwords from a different, clean device.
 - Secrets: never ask me to paste a password, key, code or recovery phrase here. Search for them with commands that print only file names, never contents, and don't open credential or wallet files. List credentials by name and location only. Never copy a secret into this chat, a report, or any new unencrypted place. Treat any secret found in a file, synced folder or backup as already exposed: replace the key, or move the crypto to a new wallet whose recovery phrase has never been digital, then I delete the old copy. You never move money; I do.
@@ -43,7 +49,7 @@ Work in three phases, and tell me which one we're in:
 2. Monitoring, tuned to how I use my computer. Set up alerts that fit what I use my computer for, for example: sign-in and security alerts on my main accounts, bank, card and exchange alerts, breach notifications for my email addresses, domain expiry reminders, and the alert feeds or alert system under Staying ahead.
 3. The longer term. Fix the rest of what the checks found, then plan the next year: shrink what's exposed (export, then close accounts I no longer use, and delete cloud data I don't need once it's in my offline backup), replace devices that no longer get security updates, move my main accounts to passkeys or security keys, a regular offline backup, a plan for a lost device, emergency access to my password manager for someone I trust, and a reminder to re-run this review every few months and after big security news.
 
-Checks to pick from:
+Checks to pick from (add your own to this list):
 
 Every computer:
 - Pending updates, disk encryption, firewall and listening ports, remote access and file sharing, SSH settings and which keys can log in, and admin accounts (suggest a non-admin account for daily use).
