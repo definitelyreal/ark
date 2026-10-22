@@ -1,79 +1,18 @@
 <!-- ai-suggestion:unverified | date:2026-10-22 -->
-# Securing your everyday computer and accounts
+*This page is part of [Ark](../README.md), a free plan for building an offline computer that keeps working when the internet or your main computer doesn't.*
 
-Ark keeps you working when the network, a service, or your main computer is gone. This guide covers the other half: making it harder for someone to steal your money, copy your email and messages, or delete your files in the first place. Attacks are now run by automated tools that find ordinary people, so "nobody would bother hacking me" no longer holds.
+# Find and fix your security vulnerabilities
 
-Start with what can't be undone: stolen crypto, and your email and messages copied out by someone else.
+Attacks are now run by automated tools that find ordinary people, so "nobody would bother hacking me" no longer holds. Below is a prompt that has Claude check your own computers, phone, and accounts for security vulnerabilities and help you fix them, followed by the five things to do first if you do nothing else. Start with what can't be undone: stolen crypto, and your email and messages copied out by someone else.
 
-Product names, menu paths, and carrier features below are as of October 2026. They change; search the settings window or the company's help pages if one has moved.
+Short on time? Jump to [the five things to do first](#if-you-only-do-five-things).
 
-## If you only do five things
+## The prompt
 
-1. Turn on automatic updates, install what's waiting, and restart. On iPhone and Mac: Settings, General, Software Update.
-2. Get a password manager and print its recovery kit (1Password calls it the Emergency Kit). Keep the paper somewhere safe at home.
-3. Put a passkey or a hardware security key on your main email account.
-4. Lock your phone number with your carrier.
-5. Copy any crypto recovery phrases onto paper and check the copy word by word, then delete them from your notes, photos, email, and cloud storage. Never type a recovery phrase into a website or app to "check" it. If you pay for AI tools that use API keys, set spending caps on those accounts.
+Copy the prompt below into Claude with the copy button at the top right of the box. It asks what you have, picks the checks that fit (everyday devices and accounts, plus websites and web hosting, domains, cloud accounts and servers, developer tools, and an optional security alert system), keeps a private dashboard of what's left to fix, and follows safety rules at every step.
 
-## How to do those, and a few more
-
-### Password manager
-
-- Make the master passphrase one you have never used anywhere else and never save it on any device. A paper copy at home is fine. If you forget it, the vault cannot be recovered.
-- Keep crypto recovery phrases out of the password manager.
-- Use its built-in checkup to find reused, weak, and breached passwords (1Password Watchtower; Bitwarden's vault health reports on its Premium plan; Google Password Checkup for passwords saved in Chrome). Change the ones on your email, bank, and Apple or Google account first.
-- If you had a LastPass vault in 2022, attackers stole encrypted copies of those vaults, and crypto thefts have been traced to them since. Change the important passwords that were in it, and move any crypto whose recovery phrase was stored there to a new wallet.
-
-### Two-step sign-in
-
-- Turn on two-step sign-in with an authenticator app, and save the backup codes on paper before you switch anything.
-- For your main email, your Apple or Google account, and your password manager, add a passkey or a hardware security key. Buy two keys and register both, so one can stay in a drawer; Apple requires at least two.
-- Text-message codes are weak against SIM swaps, but they are better than nothing. Once a passkey or key works and the backup codes are saved, remove text messages as a sign-in option where the service allows it.
-- In your email settings, check forwarding rules, filters, delegated access, and connected third-party apps. Attackers use these to keep reading your mail after you change the password. Remove anything you don't recognize.
-
-### Phone number
-
-Ask your carrier for an account PIN and turn on its number and SIM locks so no one can move your number to their phone and receive your codes:
-
-- Verizon: Number Lock and SIM Protection.
-- T-Mobile: SIM Protection and Port Out Protection.
-- AT&T: Wireless Account Lock.
-
-Most of these are in the carrier's app. Turn them off before you switch carriers, upgrade your phone, or replace a SIM, or the change will fail.
-
-### Crypto
-
-- Use a hardware wallet bought from the maker's own website, not a reseller or marketplace seller. When it arrives, check the seal and let the maker's app confirm the device is genuine.
-- Keep the recovery phrase on paper (or stamped metal for the long term), never in a photo, note, email, cloud folder, or password manager.
-- Treat any recovery phrase that was ever stored digitally as exposed, and move those funds to a new wallet.
-- On exchanges, use a security key and turn on a withdrawal address allowlist.
-- Before moving funds, send a small test amount.
-
-### Phones
-
-- iPhone: turn on Stolen Device Protection. Consider Advanced Data Protection where it is available, which end-to-end encrypts most iCloud data; set up a recovery contact or recovery key first, because Apple cannot recover your data once it is on.
-- Lockdown Mode (Settings, Privacy & Security, Lockdown Mode) gives the strongest protection against targeted attacks. Expect friction: it blocks most message attachments, link previews, and some website features.
-- Android: turn on Theft Protection, and Advanced Protection mode on Android 16 or later.
-
-### Backups
-
-- Download your data from the big services with Google Takeout and each service's own "download your data" page. The archives are not encrypted, so move them onto encrypted storage (on a Mac, Disk Utility can turn an empty drive into an encrypted one; this erases the drive) and delete the copy in Downloads.
-- Keep at least one copy on a drive you unplug. Syncing to the cloud is not a backup, because deletions and damage sync too.
-- Check that backups actually finish. Backup software can fail quietly for months. Test a restore into a separate folder and compare file counts.
-- The [backup recipe](backup.ai.md) covers versioned backups and restores in detail.
-
-### Scams
-
-- Never act on a call, text, or email asking you to "secure your account." Go to the site or app yourself.
-- Don't install software someone sends you to join a call, an interview, or a test.
-- Never paste a command into Terminal because a web page or message told you to. Commands from your own Claude session, after you understand what they do, are the exception.
-
-## Have Claude review your setup with you
-
-The prompt below asks Claude to review your own computers, phone, and accounts, to track everything in a dashboard that stays on your computer, and to help you fix what it finds, with safety rules for each step. It starts by asking what you have, then picks from a set of checks: everyday devices and accounts for everyone, plus websites and web hosting, domains, cloud accounts and servers, developer tools, and an optional security alert system for people who have them.
-
-- **Not technical:** paste this whole guide into a regular Claude chat. It will walk you through each step while you do the clicking and keep its checklist in the chat. Never paste a password, code, or recovery phrase into the chat.
-- **To check your computer itself:** use Claude Code (the Code tab in the Claude desktop app) and paste in the prompt. Claude Code needs a paid Claude plan.
+- **Not technical:** paste the prompt (or this whole page, then type "Follow the prompt on this page") into a regular Claude chat. It will walk you through each step while you do the clicking and keep its checklist in the chat. Never paste a password, code, or recovery phrase into the chat.
+- **To check your computer itself:** use Claude Code (the Code tab in the Claude desktop app). Claude Code needs a paid Claude plan.
 - Plan on a few hours over a few sittings, and only start if you have time to fix what it finds. Otherwise you are left with a list of your weak spots sitting in a transcript.
 - Approve each command yourself. Never choose "always allow" for this; it lets Claude run similar commands without asking you.
 - When you are done, delete the chat and its saved transcript.
@@ -134,7 +73,69 @@ Staying ahead:
 - If I want more, propose the simplest alert system that fits, built from existing tools: the system's own update tools or a package manager's audit command, or, for several machines and only if I'm willing to run a small server, osquery with Fleet. It should match my installed software, including apps that bundle their own browser engine, against vendor advisories and the exploited list; alert only on critical or actively exploited problems, with no duplicates and one weekly reminder for each open exploited item; and be tested by replaying the last few months to see how many alerts it would have sent. Alerts name only the app and the fix and go somewhere only I read. It never installs updates itself; it sends me the command and I pick the time. Before setting anything up, tell me what it installs, what runs on a schedule and where alerts go, and wait for my yes.
 - Suggest an update rule: operating-system and browser security updates promptly; routine updates to code packages and extensions after about a week, unless they fix an exploited bug; never an update or restart in the middle of my work without asking.
 
-Give me a short plain-English summary here, then build me a dashboard: a single HTML file I open directly in my browser that works offline, with no outside scripts, fonts or trackers. Save it in a new folder in my home folder (not Desktop, Documents or a code project), confirm that folder isn't synced by iCloud, OneDrive, Dropbox or Google Drive, and tell me its full path; if you can't write there, suggest another place that isn't synced. Don't start a web server or use Artifacts or other hosted pages. Put a "private" line and the top five risks at the top, then every item with its risk, status, who does it (you or me), the exact steps (commands are fine, never their output), how to undo it, and a one-line proof once it's done, with details behind a click. Never put a password, key, token, PIN, code, recovery phrase, access link or account number in it. If you can't create files on my computer, keep the same checklist in this chat and repost it after each item instead. Then work through what I approve, one item at a time. When we're done, show me how to delete this chat, any reviewer chats, and their saved transcripts. The dashboard is a map of my weak spots: keep it only on an encrypted drive, or delete it.
+Give me a short plain-English summary here, then build me a dashboard: a single HTML file I open directly in my browser that works offline, with no outside scripts, fonts or trackers. Save it in a new folder in my home folder (not Desktop, Documents or a code project), confirm that folder isn't synced by iCloud, OneDrive, Dropbox or Google Drive, and tell me its full path; if you can't write there, suggest another place that isn't synced. Don't start a web server or use Artifacts or other hosted pages. Put a "private" line and the top five risks at the top, then every item with its risk, status, who does it (you or me), the exact steps (commands are fine, never their output), how to undo it, and a one-line proof once it's done, with details behind a click. Never put a password, key, token, PIN, code, recovery phrase, access link or account number in it. If you aren't running on my computer (for example, in a regular chat) or can't create files there, keep the same checklist in this chat and repost it after each item instead. Then work through what I approve, one item at a time. When we're done, show me how to delete this chat, any reviewer chats, and their saved transcripts. The dashboard is a map of my weak spots: keep it only on an encrypted drive, or delete it.
 ```
 
-This prompt lowers risk; it does not guarantee you are safe. Treat the report as a starting list, not a clean bill of health.
+This prompt lowers risk; it does not guarantee you are safe. Treat the results as a starting list, not a clean bill of health.
+
+Product names, menu paths, and carrier features below are as of October 2026. They change; search the settings window or the company's help pages if one has moved.
+
+## If you only do five things
+
+1. Turn on automatic updates, install what's waiting, and restart. On iPhone and Mac: Settings, General, Software Update.
+2. Get a password manager and print its recovery kit (1Password calls it the Emergency Kit). Keep the paper somewhere safe at home.
+3. Put a passkey or a hardware security key on your main email account.
+4. Lock your phone number with your carrier.
+5. Copy any crypto recovery phrases onto paper and check the copy word by word, then delete them from your notes, photos, email, and cloud storage. Never type a recovery phrase into a website or app to "check" it. If you pay for AI tools that use API keys, set spending caps on those accounts.
+
+## How to do those, and a few more
+
+### Password manager
+
+- Make the master passphrase one you have never used anywhere else and never save it on any device. A paper copy at home is fine. If you forget it, the vault cannot be recovered.
+- Keep crypto recovery phrases out of the password manager.
+- Use its built-in checkup to find reused, weak, and breached passwords (1Password Watchtower; Bitwarden's vault health reports on its Premium plan; Google Password Checkup for passwords saved in Chrome). Change the ones on your email, bank, and Apple or Google account first.
+- If you had a LastPass vault in 2022, attackers stole encrypted copies of those vaults, and crypto thefts have been traced to them since. Change the important passwords that were in it, and move any crypto whose recovery phrase was stored there to a new wallet.
+
+### Two-step sign-in
+
+- Turn on two-step sign-in with an authenticator app, and save the backup codes on paper before you switch anything.
+- For your main email, your Apple or Google account, and your password manager, add a passkey or a hardware security key. Buy two keys and register both, so one can stay in a drawer; Apple requires at least two.
+- Text-message codes are weak against SIM swaps, but they are better than nothing. Once a passkey or key works and the backup codes are saved, remove text messages as a sign-in option where the service allows it.
+- In your email settings, check forwarding rules, filters, delegated access, and connected third-party apps. Attackers use these to keep reading your mail after you change the password. Remove anything you don't recognize.
+
+### Phone number
+
+Ask your carrier for an account PIN and turn on its number and SIM locks so no one can move your number to their phone and receive your codes:
+
+- Verizon: Number Lock and SIM Protection.
+- T-Mobile: SIM Protection and Port Out Protection.
+- AT&T: Wireless Account Lock.
+
+Most of these are in the carrier's app. Turn them off before you switch carriers, upgrade your phone, or replace a SIM, or the change will fail.
+
+### Crypto
+
+- Use a hardware wallet bought from the maker's own website, not a reseller or marketplace seller. When it arrives, check the seal and let the maker's app confirm the device is genuine.
+- Keep the recovery phrase on paper (or stamped metal for the long term), never in a photo, note, email, cloud folder, or password manager.
+- Treat any recovery phrase that was ever stored digitally as exposed, and move those funds to a new wallet.
+- On exchanges, use a security key and turn on a withdrawal address allowlist.
+- Before moving funds, send a small test amount.
+
+### Phones
+
+- iPhone: turn on Stolen Device Protection. Consider Advanced Data Protection where it is available, which end-to-end encrypts most iCloud data; set up a recovery contact or recovery key first, because Apple cannot recover your data once it is on.
+- Lockdown Mode (Settings, Privacy & Security, Lockdown Mode) gives the strongest protection against targeted attacks. Expect friction: it blocks most message attachments, link previews, and some website features.
+- Android: turn on Theft Protection, and Advanced Protection mode on Android 16 or later.
+
+### Backups
+
+- Download your data from the big services with Google Takeout and each service's own "download your data" page. The archives are not encrypted, so move them onto encrypted storage (on a Mac, Disk Utility can turn an empty drive into an encrypted one; this erases the drive) and delete the copy in Downloads.
+- Keep at least one copy on a drive you unplug. Syncing to the cloud is not a backup, because deletions and damage sync too.
+- Check that backups actually finish. Backup software can fail quietly for months. Test a restore into a separate folder and compare file counts.
+
+### Scams
+
+- Never act on a call, text, or email asking you to "secure your account." Go to the site or app yourself.
+- Don't install software someone sends you to join a call, an interview, or a test.
+- Never paste a command into Terminal because a web page or message told you to. Commands from your own Claude session, after you understand what they do, are the exception.
