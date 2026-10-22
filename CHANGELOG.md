@@ -8,6 +8,7 @@ Notable changes to the Ark plan, catalogs, and scripts. Dates are release dates.
 ### Added
 
 - **Security guide** (`docs/security.ai.md`): five first steps for everyday devices and accounts, how to do each, and a prompt that has Claude run a defensive review of your own setup, track it in a local offline dashboard, and follow safety rules for every step. The prompt asks what you have and picks from checks for everyday computers, phones and accounts, plus websites and web hosting, domains, anything reachable from the internet, cloud platforms and servers, developer and AI tools, backups and lost devices, and an optional critical-only security alert system.
+- **Threat snapshot** (`docs/threats-2026-10.ai.md`): a dated summary of security threats as of October 2026, with what to do about each and links to sources.
 
 ## v1.0.0 (2026-10-21)
 

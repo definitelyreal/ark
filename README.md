@@ -52,6 +52,7 @@ docs/software.ai.md          Software catalog, activation traps, saving installe
 docs/backup.ai.md            Collecting exports, versioned backups, restores
 docs/hardening.ai.md         Turning off network access and other exposure
 docs/security.ai.md          Securing everyday devices and accounts, with a Claude review prompt
+docs/threats-2026-10.ai.md   Dated snapshot of security threats, October 2026
 scripts/ark-*.sh             Download lanes and the status script
 scripts/ark-helper.py        Planning, verification, and status helper (standard library only)
 scripts/queues/*.tsv         The lists of what to download, by tier
