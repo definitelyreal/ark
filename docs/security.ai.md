@@ -9,6 +9,8 @@ Short on time? Jump to [the five things to do first](#if-you-only-do-five-things
 
 For what's happening right now, see [Security threats as of October 2026](threats-2026-10.ai.md), a dated snapshot of recent attacks and what to do about them.
 
+> **Have code of your own?** If you build apps, write scripts, or run a site with custom code or plugins, also run [Cloudflare's security-audit skill](https://github.com/cloudflare/security-audit-skill) on each codebase. It has Claude Code or another coding agent hunt for vulnerabilities in the code itself, with every finding checked by a separate agent that tries to disprove it. The prompt below covers your devices and accounts; the skill covers your code. Install it from Cloudflare's official repository, and run the code it tests only inside a sandbox, as its instructions require.
+
 ## The prompt
 
 Copy the prompt below into Claude with the copy button at the top right of the box. It asks what you have, picks the checks that fit (everyday devices and accounts, plus websites and web hosting, domains, cloud accounts and servers, developer tools, and an optional security alert system), keeps a private dashboard of what's left to fix, and follows safety rules at every step.
@@ -74,7 +76,7 @@ If I run anything others can reach (a website, home server, NAS, camera, tunnel 
 
 If I use cloud platforms (AWS, Google Cloud, Azure) or rent servers: who has access (including outside accounts I don't recognize), logins without 2FA (especially the owner login), access keys by last-used date, storage that's public or shared too widely, secret stores without access logging, and open firewall rules. Before making storage private or disabling a key, find what uses it.
 
-If I use code tools, SSH, API keys, or AI tools with plug-ins, connectors or MCP servers (including the one running this review): keys without passphrases and where they're trusted, code and cloud tokens and their scopes, editor extensions, MCP servers, and AI tools set to auto-approve.
+If I use code tools, SSH, API keys, or AI tools with plug-ins, connectors or MCP servers (including the one running this review): keys without passphrases and where they're trusted, code and cloud tokens and their scopes, editor extensions, MCP servers, and AI tools set to auto-approve. If I have code of my own (an app, a website's custom code or plugins, scripts), offer to install Cloudflare's security-audit skill from its official GitHub repository (github.com/cloudflare/security-audit-skill) and run it on each codebase, with my yes; it must not run the code it tests outside a sandbox.
 
 Staying ahead:
 - List security alert feeds that match what I run, for me to subscribe to.
