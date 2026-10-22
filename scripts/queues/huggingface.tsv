@@ -1,0 +1,43 @@
+# Hugging Face files for ark-models.sh. Each row is pinned to the repository's current commit the
+# first time it is planned (catalog/downloads/hf-pinned.tsv on your archive). Gated repositories
+# (which need an account and accepted terms) are skipped.
+# Fields are separated by ONE tab. Use - for an empty field. Lines starting with # are ignored.
+# tier: core (downloaded by default), optional, or giant. Choose with ARK_TIERS="core optional".
+# include: comma-separated file patterns (* matches anything, including /); - for the whole repository.
+#
+# tier	name	repo	kind	folder	include	note
+# --- core: speech to text for whisper.cpp ---
+core	whisper-large-v3-turbo	ggerganov/whisper.cpp	model	models/speech/whisper-cpp	ggml-large-v3-turbo.bin	Multilingual speech to text
+core	whisper-base-en	ggerganov/whisper.cpp	model	models/speech/whisper-cpp	ggml-base.en.bin	Small English model for slower machines
+
+# --- optional: more speech models ---
+optional	whisper-large-v3	ggerganov/whisper.cpp	model	models/speech/whisper-cpp	ggml-large-v3.bin	Most accurate whisper.cpp model
+optional	whisper-distil-large-v3	distil-whisper/distil-large-v3-ggml	model	models/speech/whisper-cpp	ggml-distil-large-v3.bin	Faster English model
+optional	faster-whisper-large-v3	Systran/faster-whisper-large-v3	model	models/speech/faster-whisper/large-v3	-	For the faster-whisper Python library
+optional	faster-whisper-large-v3-turbo	mobiuslabsgmbh/faster-whisper-large-v3-turbo	model	models/speech/faster-whisper/large-v3-turbo	-	For faster-whisper
+optional	faster-distil-whisper-large-v3	Systran/faster-distil-whisper-large-v3	model	models/speech/faster-whisper/distil-large-v3	-	For faster-whisper, English
+optional	faster-whisper-medium-en	Systran/faster-whisper-medium.en	model	models/speech/faster-whisper/medium.en	-	For faster-whisper, English
+optional	faster-whisper-small	Systran/faster-whisper-small	model	models/speech/faster-whisper/small	-	For faster-whisper, multilingual
+optional	parakeet-tdt-0.6b-v3-mlx	mlx-community/parakeet-tdt-0.6b-v3	model	models/speech/parakeet/v3-mlx	-	Parakeet for Apple Silicon (parakeet-mlx)
+optional	parakeet-tdt-0.6b-v3-onnx	istupakov/parakeet-tdt-0.6b-v3-onnx	model	models/speech/parakeet/v3-onnx	-	Parakeet as ONNX for other platforms
+
+# --- optional: voices, OCR, embeddings ---
+optional	kokoro-82m	hexgrad/Kokoro-82M	model	models/tts/kokoro-82m	-	Kokoro text to speech
+optional	kokoro-82m-mlx	prince-canuma/Kokoro-82M	model	models/tts/kokoro-82m-mlx	-	Kokoro converted for Apple Silicon (MLX)
+optional	piper-voice-en-us-lessac	rhasspy/piper-voices	model	models/tts/piper	en/en_US/lessac/medium/*	One Piper voice; add rows for others
+optional	surya-ocr-2	datalab-to/surya-ocr-2-gguf	model	models/ocr/surya-ocr-2	-	Surya OCR model (check its license)
+optional	all-minilm-l6-v2	sentence-transformers/all-MiniLM-L6-v2	model	models/embeddings/all-MiniLM-L6-v2	*.json,*.txt,model.safetensors,1_Pooling/*,README.md	Small sentence embeddings
+
+# --- optional: local image generation ---
+optional	flux1-schnell-q4	city96/FLUX.1-schnell-gguf	model	models/image/flux	flux1-schnell-Q4_K_S.gguf	FLUX.1 schnell, 4-bit
+optional	flux-t5-encoder-q8	city96/t5-v1_1-xxl-encoder-gguf	model	models/image/flux	t5-v1_1-xxl-encoder-Q8_0.gguf	Text encoder for FLUX
+optional	flux-clip-l	comfyanonymous/flux_text_encoders	model	models/image/flux	clip_l.safetensors	CLIP text encoder for FLUX
+optional	sdxl-base-1.0	stabilityai/stable-diffusion-xl-base-1.0	model	models/image/sdxl	sd_xl_base_1.0.safetensors	Stable Diffusion XL base
+
+# --- giant: larger language models as GGUF files for llama.cpp or LM Studio ---
+giant	gguf-qwen3.8-27b	unsloth/Qwen3.8-27B-GGUF	model	models/llm-gguf/qwen3.8-27b	*UD-Q4_K_XL*,mmproj-F16.gguf,README.md,LICENSE*	Dense 27B with vision
+giant	gguf-gemma-4-31b-it	unsloth/gemma-4-31b-it-GGUF	model	models/llm-gguf/gemma-4-31b-it	*UD-Q4_K_XL*,mmproj-F16.gguf,README.md,LICENSE*	Gemma 4 31B with vision
+giant	gguf-qwen3.6-35b-a3b	unsloth/Qwen3.6-35B-A3B-GGUF	model	models/llm-gguf/qwen3.6-35b-a3b	*UD-Q4_K_XL*,mmproj-F16.gguf,README.md,LICENSE*	Mixture-of-experts with vision
+giant	gguf-llama-3.3-70b	unsloth/Llama-3.3-70B-Instruct-GGUF	model	models/llm-gguf/llama-3.3-70b	*Q4_K_M*,README.md,LICENSE*	Dense 70B (Llama 3.3 license)
+giant	gguf-qwen3-coder-next	unsloth/Qwen3-Coder-Next-GGUF	model	models/llm-gguf/qwen3-coder-next	*UD-Q4_K_XL*,README.md,LICENSE*	Coding mixture-of-experts
+giant	gguf-gpt-oss-120b	unsloth/gpt-oss-120b-GGUF	model	models/llm-gguf/gpt-oss-120b	Q4_K_M/*,README.md,LICENSE*	Large mixture-of-experts

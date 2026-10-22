@@ -1,0 +1,30 @@
+# Direct downloads for ark-files.sh.
+# Fields are separated by ONE tab. Use - for an empty field. Lines starting with # are ignored.
+# tier: core (downloaded by default), optional, or giant. Choose with ARK_TIERS="core optional".
+# check: sha256 or md5 (value in the checksum column), sha256-url or md5-url (checksum file
+# URL in the checksum column, or - for <url>.sha256 / <url>.md5), record (no publisher checksum).
+#
+# tier	id	folder	filename	url	check	checksum	note
+# --- core: public reference PDFs. No publisher checksums exist, so their SHA-256 is recorded. ---
+core	pdf-who-icrc-basic-emergency-care	knowledge/pdfs/medical	WHO-ICRC_Basic_Emergency_Care.pdf	https://hlh.who.int/docs/librariesprovider4/hlh-documents/who-icrc-basic-emergency-care.pdf	record	-	WHO and ICRC Basic Emergency Care
+core	pdf-fm-4-25-11-first-aid	knowledge/pdfs/medical	FM4-25.11_First_Aid.pdf	https://archive.org/download/FM4-25.11/FM4-25.11.pdf	record	-	US Army FM 4-25.11 First Aid
+core	pdf-st-31-91b-medical-handbook	knowledge/pdfs/medical	ST31-91B_SF_Medical_Handbook.pdf	https://archive.org/download/milmanual-st-31-91b--us-army-special-forces-medical-handbook/st_31-91b-_us_army_special_forces_medical_handbook.pdf	record	-	US Army ST 31-91B Special Forces Medical Handbook
+core	pdf-emergency-war-surgery	knowledge/pdfs/medical	Emergency_War_Surgery_5th.pdf	https://archive.org/download/ews5man-mil/ews5man.pdf	record	-	Emergency War Surgery, 5th US revision
+core	pdf-fm-3-05-70-survival	knowledge/pdfs/survival	FM3-05.70_Army_Survival.pdf	https://archive.org/download/fm-3-05.70-survival-2002/FM%203-05.70%20Survival%20%202002.pdf	record	-	US Army FM 3-05.70 Survival
+core	pdf-fm-21-10-field-hygiene	knowledge/pdfs/survival	FM21-10_Field_Hygiene_Sanitation.pdf	https://archive.org/download/FM21-10_2000/FM21-10_2000.pdf	record	-	US Army FM 21-10 Field Hygiene and Sanitation
+core	pdf-fm-31-70-cold-weather	knowledge/pdfs/survival	FM31-70_Basic_Cold_Weather.pdf	https://archive.org/download/milmanual-fm-31-70-basic-cold-weather-survival-manual/fm_31-70_basic_cold_weather_survival_manual.pdf	record	-	US Army FM 31-70 Basic Cold Weather Manual
+core	pdf-usda-home-canning-intro	knowledge/pdfs/food	USDA_Complete_Guide_Home_Canning_Intro.pdf	https://nchfp.uga.edu/papers/guide/INTRO_HomeCanrev0715.pdf	record	-	USDA Complete Guide to Home Canning, introduction
+core	pdf-epa-emergency-disinfection	knowledge/pdfs/water	EPA_Emergency_Disinfection_Drinking_Water.pdf	https://www.epa.gov/sites/default/files/2017-09/documents/emergency_disinfection_of_drinking_water_sept2017.pdf	record	-	US EPA emergency disinfection of drinking water
+core	pdf-who-drinking-water-quality	knowledge/pdfs/water	WHO_Drinking_Water_Quality_4th.pdf	https://cdn.who.int/media/docs/default-source/wash-documents/water-safety-and-quality/dwq-guidelines-4/gdwq4-with-add1-title.pdf	record	-	WHO Guidelines for Drinking-water Quality, 4th edition
+core	pdf-peace-corps-wells	knowledge/pdfs/water	PeaceCorps_Wells_Construction.pdf	https://www.govinfo.gov/content/pkg/GOVPUB-PE1-PURL-gpo174254/pdf/GOVPUB-PE1-PURL-gpo174254.pdf	record	-	Peace Corps wells construction manual
+core	pdf-fm-5-426-carpentry	knowledge/pdfs/repair	FM5-426_Carpentry.pdf	https://archive.org/download/FM5-426/FM5-426.pdf	record	-	US Army FM 5-426 Carpentry
+core	pdf-seabee-combat-handbook-1	knowledge/pdfs/repair	Seabee_Combat_Handbook_Vol1.pdf	https://archive.org/download/milmanual-seabee-combat-handbook-volume-1/seabee_combat_handbook_volume_1.pdf	record	-	US Navy Seabee Combat Handbook, volume 1
+optional	pdf-arrl-ares-field-resources	knowledge/pdfs/comms	ARRL_ARES_Field_Resources_Manual.pdf	https://www.arrl.org/files/file/Public%20Service/ARES/ARESFieldResourcesManual_rev10-2019.pdf	record	-	ARRL ARES Field Resources Manual
+
+# --- Your own additions. Uncomment and edit one of these patterns. ---
+# OpenStreetMap extract for your region from https://download.geofabrik.de/ (MD5 published beside each file):
+# optional	map-monaco	maps	monaco-latest.osm.pbf	https://download.geofabrik.de/europe/monaco-latest.osm.pbf	md5-url	-	Tiny region for a first test
+# A Linux installer image with the distribution's SHA256SUMS file (put the SUMS URL in the checksum column):
+# optional	linux-installer	software/os-images	<image>.iso	<image URL>	sha256-url	<SHA256SUMS URL>	Installer for recovery
+# A macOS restore image for your Mac model; copy the URL and SHA-256 from https://ipsw.me/ :
+# optional	macos-restore	software/os-images	<name>_Restore.ipsw	<Apple download URL>	sha256	<SHA-256>	macOS restore image

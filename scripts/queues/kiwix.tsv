@@ -1,0 +1,56 @@
+# Kiwix libraries. ark-files.sh downloads the newest edition of each from
+# https://download.kiwix.org/zim/<category>/<prefix>_YYYY-MM.zim and checks Kiwix's published SHA-256.
+# The edition chosen is pinned in catalog/downloads/kiwix-resolved.tsv on your archive; rename that
+# file to look for newer editions.
+# Fields are separated by ONE tab. Use - for an empty field. Lines starting with # are ignored.
+# tier: core (downloaded by default), optional, or giant. Choose with ARK_TIERS="core optional".
+#
+# tier	category	prefix	folder	note
+# --- core: practical reference ---
+core	other	zimgit-medicine_en	knowledge/kiwix	Medical reference collection
+core	other	zimgit-water_en	knowledge/kiwix	Water collection and treatment
+core	other	zimgit-food-preparation_en	knowledge/kiwix	Food preparation and preservation
+core	other	zimgit-knots_en	knowledge/kiwix	Knots
+core	other	zimgit-post-disaster_en	knowledge/kiwix	Post-disaster resources
+core	other	wikem_en_all_maxi	knowledge/kiwix	WikEM emergency medicine
+core	other	mdwiki_en_all_maxi	knowledge/kiwix	WikiProjectMed medical encyclopedia
+core	zimit	www.ready.gov_en	knowledge/kiwix	Ready.gov preparedness guidance
+core	other	appropedia_en_all_maxi	knowledge/kiwix	Appropedia appropriate technology
+core	other	energypedia_en_all_maxi	knowledge/kiwix	Energypedia renewable energy
+core	ifixit	ifixit_en_all	knowledge/kiwix	iFixit repair guides
+core	stack_exchange	diy.stackexchange.com_en_all	knowledge/kiwix	Home improvement questions and answers
+core	stack_exchange	gardening.stackexchange.com_en_all	knowledge/kiwix	Gardening questions and answers
+core	stack_exchange	outdoors.stackexchange.com_en_all	knowledge/kiwix	Outdoors questions and answers
+core	libretexts	libretexts.org_en_med	knowledge/kiwix	LibreTexts medicine textbooks
+core	wikipedia	wikipedia_en_all_nopic	knowledge/kiwix	English Wikipedia, text only
+core	wikivoyage	wikivoyage_en_all_maxi	knowledge/kiwix	Wikivoyage travel guide
+core	wiktionary	wiktionary_en_all_nopic	knowledge/kiwix	Wiktionary dictionary, text only
+
+# --- optional: more reference, textbooks and books ---
+optional	other	theworldfactbook_en_all	knowledge/kiwix	The World Factbook
+optional	zimit	armypubs_en_all	knowledge/kiwix	US Army publications site archive
+optional	other	trueprepper.com_en_all	knowledge/kiwix	TruePrepper preparedness site archive
+optional	stack_exchange	security.stackexchange.com_en_all	knowledge/kiwix	Information security questions and answers
+optional	stack_exchange	superuser.com_en_all	knowledge/kiwix	Computer questions and answers
+optional	stack_exchange	askubuntu.com_en_all	knowledge/kiwix	Ubuntu questions and answers
+optional	wikibooks	wikibooks_en_all_nopic	knowledge/kiwix	Wikibooks open textbooks, text only
+optional	wikisource	wikisource_en_all_nopic	knowledge/kiwix	Wikisource public-domain texts, text only
+optional	wikiversity	wikiversity_en_all_nopic	knowledge/kiwix	Wikiversity learning materials, text only
+optional	libretexts	libretexts.org_en_bio	knowledge/kiwix	LibreTexts biology textbooks
+optional	libretexts	libretexts.org_en_biz	knowledge/kiwix	LibreTexts business textbooks
+optional	libretexts	libretexts.org_en_chem	knowledge/kiwix	LibreTexts chemistry textbooks
+optional	libretexts	libretexts.org_en_eng	knowledge/kiwix	LibreTexts engineering textbooks
+optional	libretexts	libretexts.org_en_geo	knowledge/kiwix	LibreTexts geosciences textbooks
+optional	libretexts	libretexts.org_en_human	knowledge/kiwix	LibreTexts humanities textbooks
+optional	libretexts	libretexts.org_en_math	knowledge/kiwix	LibreTexts mathematics textbooks
+optional	libretexts	libretexts.org_en_phys	knowledge/kiwix	LibreTexts physics textbooks
+optional	libretexts	libretexts.org_en_socialsci	knowledge/kiwix	LibreTexts social sciences textbooks
+optional	libretexts	libretexts.org_en_stats	knowledge/kiwix	LibreTexts statistics textbooks
+optional	libretexts	libretexts.org_en_workforce	knowledge/kiwix	LibreTexts workforce and trades textbooks
+optional	gutenberg	gutenberg_en_lcc-r	knowledge/kiwix	Project Gutenberg: medicine
+optional	gutenberg	gutenberg_en_lcc-s	knowledge/kiwix	Project Gutenberg: agriculture
+optional	gutenberg	gutenberg_en_lcc-q	knowledge/kiwix	Project Gutenberg: science (large)
+optional	gutenberg	gutenberg_en_lcc-t	knowledge/kiwix	Project Gutenberg: technology (large)
+
+# --- giant ---
+giant	wikipedia	wikipedia_en_all_maxi	knowledge/kiwix	English Wikipedia with images

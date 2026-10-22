@@ -1,0 +1,13 @@
+# Git repositories for ark-git.sh (shallow clones; hooks, submodules and symlinks off).
+# ClamAV signatures (core) and the optional GitHub archive (ARK_GITHUB_TOP=<count>) are built in.
+# Fields are separated by ONE tab. Use - for an empty field. Lines starting with # are ignored.
+# tier: core (downloaded by default), optional, or giant. Choose with ARK_TIERS="core optional".
+#
+# tier	name	url	folder	note
+# --- optional ---
+optional	google-fonts	https://github.com/google/fonts.git	media/fonts/google-fonts	Google Fonts collection (about 3 GB)
+optional	font-awesome	https://github.com/FortAwesome/Font-Awesome.git	media/icons/font-awesome	Font Awesome free icons
+optional	lucide	https://github.com/lucide-icons/lucide.git	media/icons/lucide	Lucide icons
+optional	yara-signature-base	https://github.com/Neo23x0/signature-base.git	tools/yara/signature-base	YARA rules for scanning files
+optional	whisper.cpp-source	https://github.com/ggml-org/whisper.cpp.git	tools/source/whisper.cpp	Source to rebuild whisper.cpp offline
+optional	llama.cpp-source	https://github.com/ggml-org/llama.cpp.git	tools/source/llama.cpp	Source to rebuild llama.cpp offline

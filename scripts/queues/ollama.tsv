@@ -1,0 +1,19 @@
+# Ollama models for ark-models.sh (names as on https://ollama.com/library).
+# Fields are separated by ONE tab. Use - for an empty field. Lines starting with # are ignored.
+# tier: core (downloaded by default), optional, or giant. Choose with ARK_TIERS="core optional".
+# approx_bytes is used only for the free-space check; Ollama reports the real size when it pulls.
+#
+# tier	model	approx_bytes	note
+# --- core ---
+core	qwen3:4b	2500000000	Small, fast general model
+core	qwen3-vl:8b	6140000000	Reads images as well as text
+core	nomic-embed-text	274000000	Text embeddings for local search
+
+# --- optional ---
+optional	bge-m3	1160000000	Multilingual embeddings
+optional	qwen3-embedding:0.6b	640000000	Embeddings
+optional	gpt-oss:20b	13793441244	Larger general model; needs about 16 GB of memory
+optional	qwen3.6:27b	17420432739	Larger general and reasoning model
+optional	qwen3.6:35b-a3b	23938333577	Mixture-of-experts general model
+optional	qwen3-coder:30b	18556700761	Coding
+optional	gemma4:26b	17987581215	General model from a second publisher
