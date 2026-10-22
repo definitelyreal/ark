@@ -1,4 +1,4 @@
-<!-- ai-suggestion:unverified | date:2026-10-15 -->
+<!-- ai-suggestion:unverified | date:2026-10-21 -->
 # Ark build checklist
 
 Use a private copy of this checklist to record your setup. A box means the complete task passed on your equipment; an application merely being installed does not count.
@@ -16,7 +16,7 @@ Use a private copy of this checklist to record your setup. A box means the compl
 ## Assemble while connected
 
 - [ ] Install the readers, office tools, media players, and converters you need.
-- [ ] Download reference collections, manuals, books, and relevant maps.
+- [ ] Download reference collections, manuals, books, and relevant maps. The [download catalog](downloads.ai.md) lists sources by tier, and the [download scripts](download-scripts.ai.md) fetch and verify them.
 - [ ] Install a local AI runtime and suitable model if wanted.
 - [ ] Download speech models and translation packs if wanted.
 - [ ] Install optional creative, engineering, education, and radio modules.
@@ -24,7 +24,7 @@ Use a private copy of this checklist to record your setup. A box means the compl
 - [ ] Save installers and documentation for essential applications.
 - [ ] Save the official restic program and checksum for each recovery platform beside each backup repository, outside its encrypted contents.
 - [ ] Record source URLs, versions, licenses, sizes, and available checksums in a private inventory.
-- [ ] Check publisher-provided checksums or signatures where available.
+- [ ] Check publisher-provided checksums or signatures where available. With the scripts, every chosen item should show VERIFIED or RECORDED in `bash scripts/ark-status.sh -a`.
 - [ ] Export important proprietary projects to accessible formats and collect linked assets.
 
 ## Collect and back up
@@ -41,6 +41,12 @@ Use a private copy of this checklist to record your setup. A box means the compl
 - [ ] Remove unneeded plaintext test restores after checking them.
 - [ ] Create and verify an independent second backup.
 - [ ] Keep passwords and recovery instructions accessible without the source computer.
+
+## Harden before relying on it offline
+
+- [ ] Work through the [hardening checklist](hardening.ai.md): encryption, boot security, accounts, remote access and sharing, updates and telemetry, then the firewall and radios at the computer itself.
+- [ ] Refresh malware signatures and build the tamper-detection baseline as the last steps before going offline.
+- [ ] Run the hardening checklist's read-only checks, restart, and run them again.
 
 ## Test the actual offline kit
 

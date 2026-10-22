@@ -1,19 +1,60 @@
-<!-- ai-suggestion:unverified | date:2026-10-15 -->
+<!-- ai-suggestion:unverified | date:2026-10-21 -->
 # Ark
 
 **An offline knowledge, tools, and backup kit you can build for yourself.**
 
 Ark helps you keep useful information, working software, and recoverable copies of your data when the internet, a service, or your main computer is unavailable. Build it on a spare laptop, use external storage for the larger library, and keep a portable selection ready to take with you.
 
-This repository is a build plan and a set of tool recipes. It does not install a complete system or contain an existing user's archive. Start with the essentials, add the modules you need, and test the result with the network disconnected.
+This repository is a build plan, a catalog of what to download, scripts that download and verify it, and checklists for assembling, backing up, and hardening the machine. It contains no downloaded content and no one's personal archive. Start with the essentials, add the modules you need, and test the result with the network disconnected.
+
+## Who it is for
+
+Anyone who wants a computer that still answers questions, opens documents, plays media, and restores their files when the network or a service is gone: households preparing for outages, people in places with unreliable internet, travelers, field workers, and anyone who prefers to own copies of the references they depend on. You should be comfortable installing applications and pasting commands into a terminal. No programming is required.
 
 ## Start here
 
 1. Read the plan below and choose your storage budget.
 2. Use the [build checklist](docs/build-checklist.ai.md) to assemble and test your kit.
-3. Choose applications from the [software catalog](docs/software.ai.md).
-4. Follow the [backup recipe](docs/backup.ai.md) to collect exports, create versioned backups, and restore them.
-5. Record your own downloads in a private copy of the [inventory template](examples/inventory.csv).
+3. Choose libraries and models from the [download catalog](docs/downloads.ai.md), then fetch and verify them with the [download scripts](docs/download-scripts.ai.md) or by hand.
+4. Choose applications from the [software catalog](docs/software.ai.md).
+5. Follow the [backup recipe](docs/backup.ai.md) to collect exports, create versioned backups, and restore them.
+6. Harden the machine with the [hardening checklist](docs/hardening.ai.md) before relying on it offline.
+7. Record your own downloads in a private copy of the [inventory template](examples/inventory.csv).
+
+## Quick start
+
+On macOS or Linux, with `bash`, `curl`, `python3`, and `git` installed, connect an external drive with a folder for the archive, then:
+
+```bash
+git clone <this repository's URL> ark && cd ark
+export ARK_ROOT=/Volumes/ARK          # your archive folder, e.g. /mnt/ark on Linux
+bash scripts/ark-files.sh             # reference libraries and PDFs (about 78 GB in the core tier)
+bash scripts/ark-models.sh            # local AI and speech models (needs ollama and hf for those items)
+bash scripts/ark-git.sh               # malware signatures and repositories
+bash scripts/ark-status.sh            # progress at any time
+```
+
+Each script resumes where it left off, so run them in separate terminals and restart them whenever you like. The core tier is about 90 GB; add `ARK_TIERS="core optional"` for about 215 GB more. The [script guide](docs/download-scripts.ai.md) covers settings, tools, and troubleshooting.
+
+## Repository layout
+
+```text
+README.md                    This overview and plan
+CHANGELOG.md                 Release notes
+LICENSE                      MIT license for the original material
+docs/build-checklist.ai.md   Assembly, offline acceptance tests, maintenance
+docs/downloads.ai.md         Download catalog: sources, sizes, licenses, verification
+docs/download-scripts.ai.md  How to run the download scripts
+docs/software.ai.md          Software catalog, activation traps, saving installers
+docs/backup.ai.md            Collecting exports, versioned backups, restores
+docs/hardening.ai.md         Turning off network access and other exposure
+scripts/ark-*.sh             Download lanes and the status script
+scripts/ark-helper.py        Planning, verification, and status helper (standard library only)
+scripts/queues/*.tsv         The lists of what to download, by tier
+examples/inventory.csv       Blank template for your private download record
+```
+
+The `.ai.md` suffix and the comment on each document's first line mark text drafted with AI assistance.
 
 ## The basic plan
 
@@ -39,7 +80,7 @@ The following are planning allowances, not measured download sizes or hardware r
 
 ### Knowledge and practical references
 
-Build an offline library around [Kiwix](https://kiwix.org/en/) and downloadable ZIM collections. Start with an encyclopedia, repair guides, technical references, textbooks, dictionaries, and books in the languages you use. Kiwix provides readers for downloaded collections; select the available collections that fit your disk budget.
+Build an offline library around [Kiwix](https://kiwix.org/en/) and downloadable ZIM collections. Start with an encyclopedia, repair guides, technical references, textbooks, dictionaries, and books in the languages you use. Kiwix provides readers for downloaded collections; select the available collections that fit your disk budget. The [download catalog](docs/downloads.ai.md) suggests a core set of about 78 GB in English, with sizes and checksums for each library.
 
 Add locally saved PDFs and ebooks for equipment manuals, food and water preparation, gardening, basic first aid, and household repair. Prefer identifiable publishers, record the edition or publication date, and retain attribution and licenses. Keep references distinct from AI-generated answers.
 
@@ -49,7 +90,7 @@ Use a normal PDF reader and an ebook reader alongside Kiwix. Test the actual boo
 
 Keep local AI as an optional assistant for writing, coding, explanation, and translation. A small model that runs comfortably on the laptop is more useful than a large model that requires an unavailable external drive or exceeds memory.
 
-Choose a local runtime such as [llama.cpp](https://github.com/ggml-org/llama.cpp), download a compatible model, and save its license and instructions. Add a coding or vision model only if you have a use for it. The basic plan does not connect the model to your backups or build a searchable personal-data system.
+Choose a local runtime such as [Ollama](https://ollama.com/) or [llama.cpp](https://github.com/ggml-org/llama.cpp), download a compatible model, and save its license and instructions. The [download catalog](docs/downloads.ai.md) lists models by size. Add a coding or vision model only if you have a use for it. The basic plan does not connect the model to your backups or build a searchable personal-data system.
 
 Optional additions include local transcription with [whisper.cpp](https://github.com/ggml-org/whisper.cpp), offline translation with [Argos Translate](https://www.argosopentech.com/), and ordinary text-to-speech. Download the required model and language files before testing offline. AI output still needs checking against reliable references.
 
@@ -100,6 +141,8 @@ Include spare charging cables, adapters, and storage connections. Estimate daily
 
 Use device encryption on the laptop and any portable storage holding private files. Restic encrypts its repository, not the original exports or restored folders. Remove unneeded test restores after checking them. The goal is a usable, maintainable offline kit. Reconnect for deliberate updates as needed, then repeat the offline checks. Verify stored data periodically and replace failing media; no storage medium should be treated as permanent.
 
+The [hardening checklist](docs/hardening.ai.md) covers what to turn off before relying on the machine offline: remote access and sharing services, automatic updates and telemetry, network time, and finally the network itself, with read-only commands to confirm each step.
+
 ## A suggested private archive layout
 
 Create this outside the Git repository. Names and contents are yours to choose.
@@ -118,10 +161,31 @@ ArkData/
   recovery/      Recovery instructions and non-secret reference files
 ```
 
+The download scripts use the same folder names under their archive root (`ARK_ROOT`, by default `/Volumes/ARK`), so libraries land in `knowledge/`, models in `models/`, and their logs and checksums in `catalog/downloads/`. Point `ARK_ROOT` at this folder if you keep everything together.
+
 Keep the backup repository on a separate storage device, outside every source folder it backs up. Keep credentials, passwords, and live configuration outside both this public repository and its example files.
+
+## Verification
+
+Every download in the catalog is checked against what its publisher provides: Kiwix's published SHA-256 for each library, Geofabrik's MD5 for map extracts, Ollama's per-layer SHA-256 digests, the per-file hashes Hugging Face publishes, git's object hashes with the HEAD commit recorded, and ClamAV's digital signatures. Where a publisher gives no checksum, as with most PDFs, the scripts record a SHA-256 on arrival so later changes can be detected. A `.sha256` or `.md5` file is kept beside each download for offline re-checks.
+
+A checksum shows that a file matches what the server offered, not that the server is trustworthy. For anything critical, also compare against a second source, such as a different mirror or a signed checksum list. The [download catalog](docs/downloads.ai.md) explains how to check each kind of item by hand, and the [build checklist](docs/build-checklist.ai.md) covers testing that everything actually opens and runs offline.
 
 ## What belongs in this repository
 
 General instructions, original helper code, public source links, and synthetic examples belong here. Actual downloads, personal exports, account details, logs, device inventories, credentials, and private configuration do not. The default `.gitignore` allows only the named publication files; contributors should deliberately extend it when adding material.
 
-This repository does not bundle third-party applications, books, models, or datasets. Acquire those from their publishers and follow their licenses. The repository's original material is available under the [MIT license](LICENSE).
+This repository does not bundle third-party applications, books, models, or datasets. Acquire those from their publishers and follow their licenses.
+
+## Contributing and reporting problems
+
+Open an issue on this repository's GitHub page to report a broken link, a renamed library, a script error, or an instruction that did not work, and include your operating system and the exact command and message. Pull requests are welcome for corrections, new well-sourced catalog entries, and script fixes. Please:
+
+- link to the publisher's own download page, with the size and how to verify the file;
+- run `bash -n` (and `shellcheck` if you have it) on changed scripts, and test them on a small item;
+- keep personal details, account names, machine names, logs, and downloaded content out of the repository;
+- add any new public file to the allowlist in `.gitignore` deliberately.
+
+## License
+
+The repository's original material (documents, scripts, and queue lists) is available under the [MIT license](LICENSE). Third-party software, libraries, books, and models keep their own licenses, which are noted in the catalogs where the publisher declares them.
