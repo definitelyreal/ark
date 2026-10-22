@@ -27,3 +27,5 @@
 !/scripts/queues/ollama.tsv
 !/scripts/queues/huggingface.tsv
 !/scripts/queues/git.tsv
+!/docs/downloads.ai.md
+!/docs/download-scripts.ai.md
