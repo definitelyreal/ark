@@ -41,6 +41,18 @@ fi
 
 export ARK_ROOT ARK_LOGS ARK_SCRIPTS ARK_QUEUES ARK_TIERS ARK_ONLY ARK_MIN_FREE_GB ARK_USER_AGENT ARK_MOUNT
 
+for _ark_v in ARK_MIN_FREE_GB ARK_CONNECTIONS ARK_PER_SERVER ARK_PASSES ARK_RETRY_WAIT ARK_WAIT_HOURS ARK_WAIT_INTERVAL; do
+  eval "_ark_x=\$$_ark_v"
+  case $_ark_x in
+    ''|*[!0-9]*) printf 'ark: %s must be a whole number (it is "%s").\n' "$_ark_v" "$_ark_x" >&2; exit 1 ;;
+  esac
+done
+case $ARK_WAIT_INTERVAL in 0) printf 'ark: ARK_WAIT_INTERVAL must be at least 1.\n' >&2; exit 1 ;; esac
+if [ "$ARK_CONNECTIONS" -lt 1 ] || [ "$ARK_PER_SERVER" -lt 1 ]; then
+  printf 'ark: ARK_CONNECTIONS and ARK_PER_SERVER must be at least 1.\n' >&2; exit 1
+fi
+unset _ark_v _ark_x
+
 ARK_NOT_READY="The archive at ARK_ROOT=$ARK_ROOT is not available${ARK_MOUNT:+ (checked that $ARK_MOUNT is mounted)}. Connect and mount the drive, create the folder, or set ARK_ROOT to the right place."
 
 # --- Small utilities ----------------------------------------------------------------------
@@ -58,16 +70,18 @@ ark_helper() { python3 -I "$ARK_SCRIPTS/ark-helper.py" "$@"; }
 ark_gb() { awk -v b="${1:-0}" 'BEGIN { printf "%.2f", b / 1e9 }'; }
 
 # ark_ready: true when ARK_ROOT exists and, if ARK_MOUNT is set, that path is a mount point.
-# A lane also remembers which filesystem ARK_ROOT was on when it started, so a drive that is
-# unmounted mid-run (leaving an empty mount-point folder behind, as on Linux) is noticed.
+# The archive carries an ID file (catalog/downloads/archive-id) written on first use. A running lane
+# checks for it, so a drive unmounted mid-run (leaving an empty mount-point folder behind, as on
+# Linux) is noticed, and the same drive is recognised again when it is reconnected.
 ark_dev() { stat -c %d "$1" 2>/dev/null || stat -f %d "$1" 2>/dev/null; }
-ARK_DEV=
+ARK_ID_FILE="$ARK_LOGS/archive-id"
+ARK_ID=
 ark_ready() {
   [ -d "$ARK_ROOT" ] || return 1
   if [ -n "$ARK_MOUNT" ]; then
     python3 -I -c 'import os, sys; sys.exit(0 if os.path.ismount(sys.argv[1]) else 1)' "$ARK_MOUNT" || return 1
   fi
-  if [ -n "$ARK_DEV" ] && [ "$(ark_dev "$ARK_ROOT")" != "$ARK_DEV" ]; then return 1; fi
+  if [ -n "$ARK_ID" ] && [ "$(cat "$ARK_ID_FILE" 2>/dev/null)" != "$ARK_ID" ]; then return 1; fi
   return 0
 }
 
@@ -86,20 +100,36 @@ ark_wait_ready() {
 
 ark_free_bytes() { df -Pk "$ARK_ROOT" 2>/dev/null | awk 'NR == 2 { printf "%.0f", $4 * 1024 }'; }
 
-# Space reservations: while a lane downloads, it records how many bytes it still needs, so lanes
-# running at the same time do not each count the same free space.
-ark_reserve() { [ -n "${ARK_LANE:-}" ] && printf '%s\n' "${1:-0}" > "$ARK_LOGS/reserve-$ARK_LANE" 2>/dev/null; return 0; }
+# Space reservations: while a lane downloads, it records how many bytes it still needs and where
+# they are going, so lanes running at the same time do not each count the same free space. Other
+# lanes subtract what has already arrived at that path, so nothing is counted twice.
+ark_used_bytes() { [ -e "$1" ] || { echo 0; return; }; du -sk "$1" 2>/dev/null | awk '{ printf "%.0f", $1 * 1024 }'; }
+ark_reserve() { # <bytes still needed> [path being written]
+  [ -n "${ARK_LANE:-}" ] || return 0
+  local need=${1:-0} path=${2:-}
+  if [ "$need" = 0 ] || [ -z "$path" ]; then
+    printf '0\t0\t-\n' > "$ARK_LOGS/reserve-$ARK_LANE" 2>/dev/null
+  else
+    printf '%s\t%s\t%s\n' "$need" "$(ark_used_bytes "$path")" "$path" > "$ARK_LOGS/reserve-$ARK_LANE" 2>/dev/null
+  fi
+  return 0
+}
 ark_reserved_by_others() {
-  local f lane pid n total=0
+  local f lane pid need start path grown left total=0
   for f in "$ARK_LOGS"/reserve-*; do
     [ -f "$f" ] || continue
     lane=${f##*/reserve-}
     [ "$lane" = "${ARK_LANE:-}" ] && continue
     pid=$(cat "$ARK_LOGS/lane-$lane.pid" 2>/dev/null)
     [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || continue
-    n=$(cat "$f" 2>/dev/null)
-    case $n in ''|*[!0-9]*) n=0 ;; esac
-    total=$(( total + n ))
+    IFS=$'\t' read -r need start path < "$f" 2>/dev/null || continue
+    case $need in ''|*[!0-9]*) continue ;; esac
+    case $start in ''|*[!0-9]*) start=0 ;; esac
+    [ "$need" = 0 ] && continue
+    grown=0
+    [ -n "$path" ] && [ "$path" != "-" ] && grown=$(( $(ark_used_bytes "$path") - start ))
+    left=$(( need - grown ))
+    [ "$left" -gt 0 ] && total=$(( total + left ))
   done
   echo "$total"
 }
@@ -210,10 +240,11 @@ ark_lane_start() {
   fi
   echo $$ > "$pidf"
   touch "$ARK_LOGS/state.tsv"
-  ARK_DEV=$(ark_dev "$ARK_ROOT")
+  [ -s "$ARK_ID_FILE" ] || printf 'ark-archive-%s-%s-%s\n' "$(date +%Y%m%d%H%M%S)" "$$" "$RANDOM" > "$ARK_ID_FILE"
+  ARK_ID=$(cat "$ARK_ID_FILE")
   ark_reserve 0
   ark_state "$ARK_LANE" lane START "pid $$; tiers: $ARK_TIERS${ARK_ONLY:+; only: $ARK_ONLY}; root: $ARK_ROOT"
-  if [ -z "$ARK_MOUNT" ] && [ "$ARK_DEV" = "$(ark_dev /)" ]; then
+  if [ -z "$ARK_MOUNT" ] && [ "$(ark_dev "$ARK_ROOT")" = "$(ark_dev /)" ]; then
     ark_log "note: ARK_ROOT is on the same filesystem as / . If you meant an external drive, check that it is mounted."
   fi
 }
@@ -234,6 +265,7 @@ ark_run_passes() {
     fi
     "$fn"; rc=$?
     [ "$rc" = 2 ] && continue
+    ark_ready || continue          # the drive went away during the last item: wait, then redo the pass
     left=$(ark_items_left "$lane")
     [ "$left" = 0 ] && break
     if [ "$pass" -lt "$ARK_PASSES" ]; then
@@ -273,6 +305,7 @@ ark_fetch() {
 # Git with everything that could run repository code turned off, and no saved credentials offered
 # to any server. Archived repositories are reading material; nothing in them is executed.
 ark_git() {
+  GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_SSH_COMMAND='ssh -o BatchMode=yes' \
   GIT_TERMINAL_PROMPT=0 GIT_LFS_SKIP_SMUDGE=1 git -c credential.helper= -c core.hooksPath=/dev/null -c core.fsmonitor=false \
     -c core.symlinks=false -c protocol.file.allow=never -c submodule.recurse=false \
     -c advice.detachedHead=false "$@"

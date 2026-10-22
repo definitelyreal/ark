@@ -74,7 +74,7 @@ verify_one() {
 }
 
 run_pass() {
-  local id tier subdir fname url bytes check sum dir out have written need prev complete meta integ before
+  local id tier subdir fname url bytes check sum dir out have written need prev complete meta integ rc
   if ! ark_helper files-plan "$PLAN" "$ARK_LOGS/items-files.tsv"; then
     ark_state files plan FAILED "could not build the download list (message above)"
     return 1
@@ -105,7 +105,7 @@ run_pass() {
     if [ -z "$bytes" ] && [ "$have" -gt 0 ] && [ "$prev" = DOWNLOADED ]; then complete=1; fi
     if [ "$complete" = 0 ]; then
       ark_state files "$id" DOWNLOADING "$url${bytes:+ ($(ark_gb "$bytes") GB)}"
-      ark_reserve "$need"
+      ark_reserve "$need" "$out"
       meta=
       if [ "$check" = kiwix ] && ark_has aria2c; then
         meta="$dir/$fname.meta4"
@@ -113,17 +113,18 @@ run_pass() {
       fi
       integ=false
       [ "$prev" = VERIFY-FAILED ] && integ=true
-      before=$(ark_alloc_bytes "$out")
-      if ! ark_fetch "$url" "$dir" "$fname" "$meta" "$integ" >> "$DLOG" 2>&1; then
+      ark_fetch "$url" "$dir" "$fname" "$meta" "$integ" >> "$DLOG" 2>&1
+      rc=$?
+      if [ "$rc" != 0 ]; then
         ark_reserve 0
-        # A partial file that makes no progress after repeated tries (for example from a server
-        # that cannot resume) is moved aside so the next pass starts it fresh.
-        if [ "$(ark_alloc_bytes "$out")" = "$before" ] && [ "$(ark_count_state "$id" FAILED)" -ge 2 ]; then
-          ark_move_aside "$out" stalled
-          ark_move_aside "$out.aria2" stalled
-          ark_state files "$id" FAILED "no progress after several tries; moved the partial file aside, next pass starts over"
+        # Only when the server says it cannot resume (curl exit 33, aria2c exit 8) is the partial
+        # file moved aside so the next pass starts it fresh. Network outages simply resume.
+        if [ "$rc" = 33 ] || { [ "$rc" = 8 ] && ark_has aria2c; }; then
+          ark_move_aside "$out" no-resume
+          ark_move_aside "$out.aria2" no-resume
+          ark_state files "$id" FAILED "the server cannot resume this file; moved the partial copy aside, next pass starts over"
         else
-          ark_state files "$id" FAILED "download stopped at $(ark_size "$out") bytes; it resumes next pass (details in files-download.log)"
+          ark_state files "$id" FAILED "download stopped at $(ark_size "$out") bytes (exit $rc); it resumes next pass (details in files-download.log)"
         fi
         continue
       fi

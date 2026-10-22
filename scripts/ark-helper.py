@@ -316,13 +316,18 @@ def cmd_ollama_verify(store, model):
         elif rehash and digest.startswith("sha256:") and sha256_file(blob) != digest[7:]:
             bad.append("sha256 " + digest[:19])
     if bad:
-        moved = 0
+        # Bad layers go to a quarantine folder outside blobs/, where Ollama never looks (and never
+        # prunes), so the next pull fetches them again. Other models sharing a layer are re-checked
+        # the next time they are verified.
+        moved, qdir = 0, os.path.join(store, "quarantine")
         for layer in layers:
             digest = layer["digest"]
-            if any(digest[:19] in b for b in bad):
-                if move_aside(os.path.join(store, "blobs", digest.replace(":", "-")), "bad"):
-                    moved += 1
-        print("FAIL " + "; ".join(bad[:5]) + f"; moved {moved} bad layer file(s) aside, next pass fetches them again")
+            src = os.path.join(store, "blobs", digest.replace(":", "-"))
+            if any(digest[:19] in b for b in bad) and os.path.lexists(src):
+                os.makedirs(qdir, exist_ok=True)
+                os.rename(src, os.path.join(qdir, f"{os.path.basename(src)}.bad-{time.strftime('%Y%m%d-%H%M%S')}"))
+                moved += 1
+        print("FAIL " + "; ".join(bad[:5]) + f"; moved {moved} bad layer file(s) to {qdir}, next pass fetches them again")
         sys.exit(1)
     how = "SHA-256 re-hashed" if rehash else "sizes checked"
     print(f"OK {len(layers)} blobs, {total} bytes, {how}")

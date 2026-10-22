@@ -27,7 +27,7 @@ ARK_OLLAMA_HOST=${ARK_OLLAMA_HOST:-127.0.0.1:11436}   # not 11434, which the Oll
 export ARK_OLLAMA_STORE
 OPID=
 
-ollama_up() { curl -s --max-time 3 "http://$ARK_OLLAMA_HOST/api/version" >/dev/null 2>&1; }
+ollama_up() { curl -q -s --max-time 3 "http://$ARK_OLLAMA_HOST/api/version" >/dev/null 2>&1; }
 
 start_ollama() {
   local i=0
@@ -92,7 +92,7 @@ do_ollama() {
     fi
     log="$ARK_LOGS/ollama-pull-$(printf '%s' "$model" | tr -c 'A-Za-z0-9._-' '_').jsonl"
     ark_state models "$id" DOWNLOADING "pull from registry.ollama.ai (about $(ark_gb "$bytes") GB)"
-    ark_reserve "$bytes"
+    ark_reserve "$bytes" "$ARK_OLLAMA_STORE/blobs"
     curl -q -sN --max-time 86400 -H 'Content-Type: application/json' \
       -d "{\"model\":\"$model\",\"name\":\"$model\",\"stream\":true}" \
       "http://$ARK_OLLAMA_HOST/api/pull" > "$log" 2>&1
@@ -120,8 +120,8 @@ do_hf() {
     return 0
   fi
   # No login, no telemetry, no token from your usual Hugging Face settings or environment, no
-  # extra cache, and a limited number of parallel range requests per file.
-  unset HF_TOKEN HUGGING_FACE_HUB_TOKEN
+  # extra cache, and one file at a time with at most ARK_CONNECTIONS range requests.
+  unset HF_TOKEN HUGGING_FACE_HUB_TOKEN HF_HUB_ENABLE_HF_TRANSFER HF_HUB_OFFLINE
   HF_HOME=${ARK_HF_HOME:-$ARK_LOGS/hf-home}
   export HF_HOME HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_DISABLE_IMPLICIT_TOKEN=1 \
     HF_HUB_DISABLE_PROGRESS_BARS=1 HF_XET_CHUNK_CACHE_SIZE_BYTES=0 \
@@ -139,7 +139,7 @@ do_hf() {
       continue
     fi
     mkdir -p "$dir" || { ark_state models "$id" FAILED "cannot create $dir"; continue; }
-    set -- download "$repo" --revision "$rev" --local-dir "$dir" --max-workers "$ARK_PER_SERVER"
+    set -- download "$repo" --revision "$rev" --local-dir "$dir" --max-workers 1
     [ "$kind" = dataset ] && set -- "$@" --repo-type dataset
     oldifs=$IFS; IFS=,; set -f
     for p in $include; do
@@ -147,7 +147,7 @@ do_hf() {
     done
     set +f; IFS=$oldifs
     ark_state models "$id" DOWNLOADING "$repo at commit ${rev:0:12} ($(ark_gb "$bytes") GB)"
-    ark_reserve "$need"
+    ark_reserve "$need" "$dir"
     if hf "$@" >> "$ARK_LOGS/hf-download.log" 2>&1 < /dev/null; then
       ark_reserve 0
       if detail=$(ark_helper hf-verify "$repo" "$kind" "$rev" "$dir" "$include"); then

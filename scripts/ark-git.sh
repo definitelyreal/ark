@@ -35,15 +35,30 @@ clone_complete() {
   local missing
   ark_git -C "$1" rev-parse -q --verify HEAD >/dev/null 2>&1 || return 1
   [ -f "$1/.git/index" ] || return 1
-  missing=$(ark_git -C "$1" ls-files --deleted 2>/dev/null | head -n 1) || return 1
+  missing=$(ark_git -C "$1" ls-files --deleted 2>/dev/null) || return 1
   [ -z "$missing" ]
 }
 
-# clone_one <url> <dir>: 0 when <dir> holds a complete clone. An incomplete earlier attempt is moved aside.
+# clone_one <url> <dir>: 0 when <dir> holds a complete clone.
+# A clone whose commit arrived but whose checkout was interrupted is repaired in place from its own
+# data. A clone without a usable commit is moved aside and cloned again, at most twice per folder,
+# so a repository that can never be written to this disk does not pile up copies.
 clone_one() {
-  local url=$1 dir=$2
-  if [ -d "$dir/.git" ] && clone_complete "$dir"; then return 0; fi
-  ark_move_aside "$dir" partial
+  local url=$1 dir=$2 tries
+  if [ -d "$dir/.git" ] && ark_git -C "$dir" rev-parse -q --verify HEAD >/dev/null 2>&1; then
+    clone_complete "$dir" && return 0
+    ark_git -C "$dir" reset -q --hard HEAD < /dev/null
+    clone_complete "$dir"
+    return
+  fi
+  if [ -e "$dir" ]; then
+    tries=$(ls -d "$dir".partial-* 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$tries" -ge 2 ]; then
+      echo "not retrying $dir: two earlier attempts failed (see $dir.partial-*)" >&2
+      return 1
+    fi
+    ark_move_aside "$dir" partial
+  fi
   mkdir -p "$(dirname "$dir")" || return 1
   ark_git clone -c core.symlinks=false -c core.hooksPath=/dev/null -c credential.helper= --depth 1 \
     --no-recurse-submodules --quiet "$url" "$dir" < /dev/null || return 1
@@ -71,7 +86,13 @@ do_clamav() {
       else res="$res $(basename "$f"):BAD"; fi
     done
     case $res in
-      ""|*BAD*) ark_state git clamav-db VERIFY-FAILED "signature check:${res:- no database files found}" ;;
+      ""|*BAD*)
+        # Move bad database files aside so the next run downloads them again.
+        for f in "$db"/*.cvd "$db"/*.cld; do
+          [ -e "$f" ] || continue
+          case $res in *" $(basename "$f"):BAD"*) ark_move_aside "$f" bad ;; esac
+        done
+        ark_state git clamav-db VERIFY-FAILED "signature check:${res:- no database files found}; bad files moved aside" ;;
       *) ark_state git clamav-db VERIFIED "ClamAV digital signatures:$res" ;;
     esac
   else
@@ -87,7 +108,7 @@ do_repo() { # id url subdir
     return 0
   fi
   ark_state git "$id" DOWNLOADING "$url"
-  ark_reserve $(( ARK_GIT_RESERVE_GB * 1000000000 ))
+  ark_reserve $(( ARK_GIT_RESERVE_GB * 1000000000 )) "$dir"
   if clone_one "$url" "$dir" >> "$GLOG" 2>&1; then
     ark_reserve 0
     if ! ark_git -C "$dir" fsck --connectivity-only --no-dangling >> "$GLOG" 2>&1; then
@@ -140,16 +161,18 @@ do_github() {
     else
       echo "$rank,$repo,$stars,$pushed,$branch,,0,$flag,FAILED,$(ark_now)" >> "$man"
       failed=$(( failed + 1 ))
-      ark_move_aside "$dir" failed
     fi
     if [ $(( n % 50 )) = 0 ]; then
       ark_state git github-top DOWNLOADING "$n processed, $cloned cloned, $failed failed; $(ark_gb "$(ark_free_bytes)") GB free"
     fi
     sleep 1
   done 3< "$list"
-  # Finished only when every listed repository's latest manifest row says cloned.
-  failed=$(awk -F, 'NR > 1 { s[$2] = $9 } END { n = 0; for (k in s) if (s[k] != "cloned") n++; print n }' "$man")
-  cloned=$(awk -F, 'NR > 1 { s[$2] = $9 } END { n = 0; for (k in s) if (s[k] == "cloned") n++; print n }' "$man")
+  # Finished only when every repository in the pinned list has a latest manifest row saying cloned.
+  # (Status is the second-to-last field, so a comma in a branch name cannot shift it.)
+  set -- $(awk -F'\t' 'FILENAME == ARGV[1] { want[$2] = 1; next }
+    FNR > 1 { n = split($0, a, ","); st[a[2]] = a[n - 1] }
+    END { c = 0; f = 0; for (r in want) { if (st[r] == "cloned") c++; else f++ } print c, f }' "$list" "$man")
+  cloned=${1:-0}; failed=${2:-0}
   if [ "$failed" = 0 ]; then
     ark_state git github-top VERIFIED "$cloned cloned; HEAD commits in $man"
   else
