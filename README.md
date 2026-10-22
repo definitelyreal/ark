@@ -1,7 +1,8 @@
-<!-- ai-suggestion:unverified | date:2026-10-21 -->
 # Ark
 
 **An offline knowledge, tools, and backup kit you can build for yourself.**
+
+**Here is the [prompt for LLMs and security checklist](docs/security.ai.md) to keep yourself secure.**
 
 Ark helps you keep useful information, working software, and recoverable copies of your data when the internet, a service, or your main computer is unavailable. Build it on a spare laptop, use external storage for the larger library, and keep a portable selection ready to take with you.
 
