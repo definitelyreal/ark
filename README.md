@@ -7,6 +7,8 @@ Ark helps you keep useful information, working software, and recoverable copies 
 
 This repository is a build plan, a catalog of what to download, scripts that download and verify it, and checklists for assembling, backing up, and hardening the machine. It contains no downloaded content and no one's personal archive. Start with the essentials, add the modules you need, and test the result with the network disconnected.
 
+It also includes a [security guide](docs/security.ai.md) for the computer, phone, and accounts you use every day, with a prompt that has Claude review your setup with you.
+
 ## Who it is for
 
 Anyone who wants a computer that still answers questions, opens documents, plays media, and restores their files when the network or a service is gone: households preparing for outages, people in places with unreliable internet, travelers, field workers, and anyone who prefers to own copies of the references they depend on. You should be comfortable installing applications and pasting commands into a terminal. No programming is required.
@@ -20,6 +22,7 @@ Anyone who wants a computer that still answers questions, opens documents, plays
 5. Follow the [backup recipe](docs/backup.ai.md) to collect exports, create versioned backups, and restore them.
 6. Harden the machine with the [hardening checklist](docs/hardening.ai.md) before relying on it offline.
 7. Record your own downloads in a private copy of the [inventory template](examples/inventory.csv).
+8. Secure your everyday computer, phone, and accounts with the [security guide](docs/security.ai.md).
 
 ## Quick start
 
@@ -48,6 +51,7 @@ docs/download-scripts.ai.md  How to run the download scripts
 docs/software.ai.md          Software catalog, activation traps, saving installers
 docs/backup.ai.md            Collecting exports, versioned backups, restores
 docs/hardening.ai.md         Turning off network access and other exposure
+docs/security.ai.md          Securing everyday devices and accounts, with a Claude review prompt
 scripts/ark-*.sh             Download lanes and the status script
 scripts/ark-helper.py        Planning, verification, and status helper (standard library only)
 scripts/queues/*.tsv         The lists of what to download, by tier

@@ -3,6 +3,12 @@
 
 Notable changes to the Ark plan, catalogs, and scripts. Dates are release dates.
 
+## Unreleased
+
+### Added
+
+- **Security guide** (`docs/security.ai.md`): five first steps for everyday devices and accounts, how to do each, and a prompt that has Claude run a defensive review of your own setup, track it in a local offline dashboard, and follow safety rules for every step.
+
 ## v1.0.0 (2026-10-21)
 
 First official release: everything needed to choose, download, verify, assemble, back up, and harden an offline kit.
