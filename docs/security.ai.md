@@ -17,7 +17,7 @@ Copy the prompt below into Claude with the copy button at the top right of the b
 - **Not technical:** paste the prompt (or this whole page, then type "Follow the prompt on this page") into a regular Claude chat. It will walk you through each step while you do the clicking and keep its checklist in the chat. Never paste a password, code, or recovery phrase into the chat.
 - **To check your computer itself:** use Claude Code (the Code tab in the Claude desktop app). Claude Code needs a paid Claude plan.
 - Plan on a few hours over a few sittings, and only start if you have time to fix what it finds. Otherwise you are left with a list of your weak spots sitting in a transcript.
-- Approve each command yourself. Never choose "always allow" for this; it lets Claude run similar commands without asking you.
+- At the start, Claude lists the kinds of read-only checks it needs, so you can approve those once instead of one by one. Anything that changes your computer, or touches a password, key or account, still gets your yes each time. Don't turn on a mode that skips all approvals.
 - When you are done, delete the chat and its saved transcript.
 
 ```text
@@ -30,7 +30,7 @@ In parallel, do a thorough scan of my computer and system.
 
 Then confirm my devices with me (you should be able to figure out most of this from your scan): computers, servers, phones, email and cloud accounts, password managers, web hosting, domains, my home network, crypto, AI tools, shared access, IoT devices, my patterns and what I use the computers for.
 
-Check with me before running commands, but try to get blanket permission rather than permission for every command. You can run commands on this computer (plus SSH or cloud command-line tools I already use from here, with my yes.) Try to get access to run commands yourself, and if you absolutely can't, give me read-only ones to run and paste back, written so they don't print secrets. Look up vendor security advisories and CISA's Known Exploited Vulnerabilities list for the software I actually use. Don't fetch exploit code.
+Check with me before running commands, but try to get blanket permission rather than permission for every command. Permissions setup, before anything else: check how your permissions are set up here (the permission mode and any commands already allowed) and tell me in plain English. Then list, in one message, the kinds of read-only commands you'll need (for example reading system settings, listing installed apps and their versions, searching for file names) and ask me to approve those kinds once. Anything that changes my computer, installs something, touches a password, key or recovery phrase, or contacts an account stays a separate request I approve one at a time. Don't ask me to turn on a mode that skips all approvals. Work in batches: read-only checks first, then one plan, then fixes grouped by area, so I'm not interrupted constantly. You can run commands on this computer (plus SSH or cloud command-line tools I already use from here, with my yes.) Try to get access to run commands yourself, and if you absolutely can't, give me read-only ones to run and paste back, written so they don't print secrets. Look up vendor security advisories and CISA's Known Exploited Vulnerabilities list for the software I actually use. Don't fetch exploit code.
 
 Explain what you are doing in single plain sentences, get my yes, say how to undo it, prove it worked, and update the dashboard once it exists, adding earlier steps.
 
