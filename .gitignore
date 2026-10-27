@@ -33,3 +33,10 @@
 !/docs/security.ai.md
 !/docs/threats-2026-10.ai.md
 !/CHANGELOG.md
+!/docs/security-contributing.ai.md
+!/scripts/security-guide.py
+!/.github/
+/.github/*
+!/.github/workflows/
+/.github/workflows/*
+!/.github/workflows/security-guide.yml
